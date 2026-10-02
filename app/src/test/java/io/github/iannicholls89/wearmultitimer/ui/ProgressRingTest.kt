@@ -28,11 +28,11 @@ import org.robolectric.annotation.GraphicsMode
 class ProgressRingTest {
     @get:Rule val compose = createComposeRule()
 
-    /** How bright the ring is at 9 o'clock: the middle of its stroke, 7dp in from the left edge. */
+    /** How bright the ring is at 9 o'clock: the middle of its 5dp stroke, 5.5dp in from the left edge. */
     private fun ringAtNine(): Float {
         val image = compose.onRoot().captureToImage().toPixelMap()
         val dp = image.width / 228f
-        return image[(7 * dp).toInt(), image.height / 2].luminance()
+        return image[(5.5f * dp).toInt(), image.height / 2].luminance()
     }
 
     @Test fun ringRefillsWhenRestarted() {

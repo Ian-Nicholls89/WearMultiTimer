@@ -2,6 +2,8 @@ package io.github.iannicholls89.wearmultitimer.alarm
 
 import android.annotation.SuppressLint
 import android.app.Service
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
@@ -33,8 +35,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Buzzes and chimes while any timer is ringing, and stops by itself once none is: stopped, given
- * +1 min, or quiet after two minutes. The only time the app runs in the background - nothing runs
- * just to count down.
+ * +1 min, put on the charger, or missed after ten minutes. No chime during a call - just the
+ * buzz. The only time the app runs in the background - nothing runs just to count down.
  */
 class RingService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -42,6 +44,25 @@ class RingService : Service() {
     private var alerting = false
     private var player: MediaPlayer? = null
     private var wakeLock: PowerManager.WakeLock? = null
+    private var chimeWanted = false
+
+    /** On the charger: as Google Clock, that ends the ringing (the timer counts as missed). */
+    private val charger = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val controller = TimerController.get(context)
+            controller.launch {
+                val now = System.currentTimeMillis()
+                update(now) { s -> s.copy(timers = s.timers.map { if (it.isRinging(now)) it.copy(quiet = true) else it }) }
+            }
+        }
+    }
+
+    /** A call starting or ending while ringing: the chime stops for it, and comes back after. */
+    private val callWatch: Any? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        AudioManager.OnModeChangedListener { updateChime() }
+    } else {
+        null
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -53,6 +74,13 @@ class RingService : Service() {
             goForeground()
             startAlert()
             showAlertScreen()
+            ContextCompat.registerReceiver(
+                this, charger, IntentFilter(Intent.ACTION_POWER_CONNECTED), ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                getSystemService(AudioManager::class.java)
+                    .addOnModeChangedListener(mainExecutor, callWatch as AudioManager.OnModeChangedListener)
+            }
         }
         // Started again when another timer runs out while ringing: look again at what's ringing.
         watching?.cancel()
@@ -121,7 +149,18 @@ class RingService : Service() {
 
         // As Google Clock: the chime plays at the alarm volume whether the watch is on sound or
         // vibrate; only silent mode keeps it quiet. Our own sound - a watch may have no alarm tones.
-        if (getSystemService(AudioManager::class.java).ringerMode != AudioManager.RINGER_MODE_SILENT) {
+        chimeWanted = getSystemService(AudioManager::class.java).ringerMode != AudioManager.RINGER_MODE_SILENT
+        updateChime()
+    }
+
+    private fun inCall(): Boolean = getSystemService(AudioManager::class.java).mode.let {
+        it == AudioManager.MODE_IN_CALL || it == AudioManager.MODE_IN_COMMUNICATION
+    }
+
+    /** Chimes when it should and isn't; stops when a call starts. */
+    private fun updateChime() {
+        val play = alerting && chimeWanted && !inCall()
+        if (play && player == null) {
             player = try {
                 MediaPlayer().apply {
                     setAudioAttributes(alarmAudio)
@@ -134,7 +173,20 @@ class RingService : Service() {
                 Log.w(TAG, "Couldn't play the chime", e)
                 null
             }
+        } else if (!play) {
+            stopChime()
         }
+    }
+
+    private fun stopChime() {
+        player?.run {
+            try {
+                stop()
+            } catch (_: IllegalStateException) {
+            }
+            release()
+        }
+        player = null
     }
 
     /**
@@ -155,14 +207,12 @@ class RingService : Service() {
         if (!alerting) return
         alerting = false
         vibrator().cancel()
-        player?.run {
-            try {
-                stop()
-            } catch (_: IllegalStateException) {
-            }
-            release()
+        stopChime()
+        runCatching { unregisterReceiver(charger) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getSystemService(AudioManager::class.java)
+                .removeOnModeChangedListener(callWatch as AudioManager.OnModeChangedListener)
         }
-        player = null
         wakeLock?.takeIf { it.isHeld }?.release()
         wakeLock = null
     }

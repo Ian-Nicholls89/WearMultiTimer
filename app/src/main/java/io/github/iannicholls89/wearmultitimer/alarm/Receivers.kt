@@ -27,7 +27,10 @@ class TimerAlarmReceiver : BroadcastReceiver() {
     }
 }
 
-/** After a restart, an app update or a change of the clock, the alarm has to be set again. */
+/**
+ * After a restart (straight away, before the watch is unlocked), an app update or a change of the
+ * clock, the alarm has to be set again.
+ */
 class RestoreReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action !in restoreActions) return
@@ -36,6 +39,7 @@ class RestoreReceiver : BroadcastReceiver() {
 
     private companion object {
         val restoreActions = setOf(
+            Intent.ACTION_LOCKED_BOOT_COMPLETED,
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIME_CHANGED,

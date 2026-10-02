@@ -21,6 +21,8 @@ data class TimerItem(
     /** Time left, while paused or reset. */
     val remainingMs: Long = durationMs,
     val createdAtMs: Long = 0,
+    /** Finished and silenced before its ringing time was over (put on the charger): stays "Time's up". */
+    val quiet: Boolean = false,
 ) {
     enum class State { RUNNING, PAUSED, RESET }
 
@@ -32,7 +34,7 @@ data class TimerItem(
     fun isDone(now: Long): Boolean = state == State.RUNNING && remaining(now) <= 0
 
     /** Done, and still within the time it buzzes for; after that it waits silently as "Time's up". */
-    fun isRinging(now: Long): Boolean = isDone(now) && -remaining(now) < RING_FOR_MS
+    fun isRinging(now: Long): Boolean = isDone(now) && !quiet && -remaining(now) < RING_FOR_MS
 
     /** The share of the ring still to go, 1 at the start down to 0 at the end. */
     fun progress(now: Long): Float =
@@ -40,7 +42,7 @@ data class TimerItem(
 
     fun start(now: Long): TimerItem =
         if (state == State.RUNNING) this
-        else copy(state = State.RUNNING, endAtMs = now + remainingMs)
+        else copy(state = State.RUNNING, endAtMs = now + remainingMs, quiet = false)
 
     fun pause(now: Long): TimerItem =
         if (state != State.RUNNING || isDone(now)) this
@@ -48,20 +50,20 @@ data class TimerItem(
 
     /** As Google Clock: adds a minute, or once the time is up, starts a fresh minute. */
     fun addMinute(now: Long): TimerItem = when {
-        isDone(now) -> copy(endAtMs = now + MINUTE, totalMs = MINUTE)
+        isDone(now) -> copy(endAtMs = now + MINUTE, totalMs = MINUTE, quiet = false)
         state == State.RUNNING -> copy(endAtMs = endAtMs!! + MINUTE, totalMs = totalMs + MINUTE)
         state == State.PAUSED -> copy(remainingMs = remainingMs + MINUTE, totalMs = totalMs + MINUTE)
         else -> this
     }
 
     fun reset(): TimerItem =
-        copy(state = State.RESET, endAtMs = null, remainingMs = durationMs, totalMs = durationMs)
+        copy(state = State.RESET, endAtMs = null, remainingMs = durationMs, totalMs = durationMs, quiet = false)
 
     companion object {
         const val MINUTE = 60_000L
 
-        /** How long a finished timer buzzes before it goes quiet, so a watch left on the side doesn't buzz on. */
-        const val RING_FOR_MS = 2 * MINUTE
+        /** How long a finished timer rings before it gives up and counts as missed - as Google Clock. */
+        const val RING_FOR_MS = 10 * MINUTE
     }
 }
 

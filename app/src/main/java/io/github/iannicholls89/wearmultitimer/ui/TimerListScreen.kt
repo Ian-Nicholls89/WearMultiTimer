@@ -32,6 +32,10 @@ import io.github.iannicholls89.wearmultitimer.timer.TimerItem
 import io.github.iannicholls89.wearmultitimer.timer.displayName
 import io.github.iannicholls89.wearmultitimer.timer.formatCountdown
 import io.github.iannicholls89.wearmultitimer.timer.sortedForList
+import io.github.iannicholls89.wearmultitimer.timer.spokenStatus
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 
 /** Something stopping the alerts from working, with what fixes it. */
 data class Notice(val text: String, val onClick: () -> Unit)
@@ -162,7 +166,10 @@ private fun TimerRow(timer: TimerItem, now: Long, onClick: () -> Unit, transform
     val progress by rememberUpdatedState(timer.progress(now))
     Button(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clearAndSetSemantics {
+            contentDescription = timer.spokenStatus(now)
+            onClick(label = "Open") { onClick(); true }
+        },
         colors = colors,
         transformation = transformation,
         icon = {

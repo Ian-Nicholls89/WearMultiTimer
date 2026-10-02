@@ -10,6 +10,7 @@ import android.os.VibratorManager
 import androidx.test.core.app.ApplicationProvider
 import io.github.iannicholls89.wearmultitimer.timer.AppState
 import io.github.iannicholls89.wearmultitimer.timer.TimerItem
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -118,6 +119,31 @@ class AlarmTest {
         waitFor { shadowOf(service.get()).isStoppedBySelf }
         assertFalse(vibrator.isVibrating)
         assertFalse(service.get().isChiming)
+    }
+
+    @Test fun `on the charger the ringing stops, and it's left as missed`() {
+        ShadowMediaPlayer.setMediaInfoProvider { ShadowMediaPlayer.MediaInfo(1_400, 0) }
+        val t = TimerItem(id = 1, name = "Tea", durationMs = 1_000).start(now - 5_000)
+        set(t)
+        val service = Robolectric.buildService(RingService::class.java).create().startCommand(0, 1)
+        context.sendBroadcast(android.content.Intent(android.content.Intent.ACTION_POWER_CONNECTED))
+        waitFor { shadowOf(service.get()).isStoppedBySelf }
+        val after = runBlocking { controller.store.state.first() }.timers.single()
+        assertTrue("still finished", after.isDone(now))
+        assertTrue("but quiet", after.quiet)
+        val nm = shadowOf(context.getSystemService(android.app.NotificationManager::class.java))
+        val missed = nm.allNotifications.single { it.extras.getString(android.app.Notification.EXTRA_TITLE) == "Tea" }
+        assertTrue(missed.extras.getCharSequence(android.app.Notification.EXTRA_TEXT).toString().startsWith("Missed · ended at"))
+    }
+
+    @Test fun `during a call it buzzes but doesn't chime`() {
+        ShadowMediaPlayer.setMediaInfoProvider { ShadowMediaPlayer.MediaInfo(1_400, 0) }
+        context.getSystemService(AudioManager::class.java).mode = AudioManager.MODE_IN_CALL
+        set(TimerItem(id = 1, durationMs = 1_000).start(now - 5_000))
+        val service = Robolectric.buildService(RingService::class.java).create().startCommand(0, 1)
+        assertTrue(shadowOf(context.getSystemService(VibratorManager::class.java).defaultVibrator).isVibrating)
+        assertFalse(service.get().isChiming)
+        context.getSystemService(AudioManager::class.java).mode = AudioManager.MODE_NORMAL
     }
 
     @Test fun `silent mode keeps the chime quiet but still buzzes`() {

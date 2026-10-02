@@ -114,7 +114,7 @@ class TimerItemTest {
 class TimerAlarmLogicTest {
     private val t0 = 1_000_000L
 
-    @Test fun `a finished timer rings for two minutes, then waits quietly`() {
+    @Test fun `a finished timer rings for ten minutes, then waits quietly`() {
         val t = TimerItem(id = 1, durationMs = 60_000).start(t0)
         assertFalse(t.isRinging(t0 + 59_999))
         assertTrue(t.isRinging(t0 + 60_000))
@@ -138,5 +138,30 @@ class TimerAlarmLogicTest {
         assertEquals(t0 + 120_000, listOf(a, b, paused, finished).nextAlarmAt(t0 + 20_000))
         assertEquals(t0 + 300_000, listOf(a, b).nextAlarmAt(t0 + 120_000))
         assertNull(listOf(paused, finished).nextAlarmAt(t0 + 20_000))
+    }
+}
+
+class TimerQuietAndSpokenTest {
+    private val t0 = 1_000_000L
+
+    @Test fun `silenced early it stops ringing but stays finished, until stopped or extended`() {
+        val t = TimerItem(id = 1, durationMs = 60_000).start(t0).copy(quiet = true)
+        val at = t0 + 70_000
+        assertFalse(t.isRinging(at))
+        assertTrue(t.isDone(at))
+        assertFalse(t.reset().quiet)
+        assertFalse(t.addMinute(at).quiet)
+        assertTrue("a fresh minute rings again when it runs out", t.addMinute(at).isRinging(at + 60_000))
+    }
+
+    @Test fun `spoken durations and status`() {
+        assertEquals("9 minutes 41 seconds", spokenDuration(581_000))
+        assertEquals("1 hour 2 minutes", spokenDuration(3_720_000))
+        assertEquals("1 minute 1 second", spokenDuration(61_000))
+        assertEquals("0 seconds", spokenDuration(0))
+        val pasta = TimerItem(id = 1, name = "Pasta", durationMs = 600_000).start(t0)
+        assertEquals("Pasta. Timer running, 9 minutes 41 seconds left.", pasta.spokenStatus(t0 + 19_000))
+        assertEquals("Pasta. Timer finished, 12 seconds over.", pasta.spokenStatus(t0 + 612_000))
+        assertEquals("Pasta. Timer paused, 9 minutes left.", pasta.pause(t0 + 60_000).spokenStatus(t0 + 999_999))
     }
 }

@@ -3,7 +3,7 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.5 — any number of named timers and presets; finished timers ring, even with the
+> **Status:** v0.6 — any number of named timers and presets; finished timers ring, even with the
 > app closed or the watch asleep; the running timer shows at the foot of the watch face; the app
 > stays on screen, dimmed, when the watch dims; and it updates itself. Next: v1.0.
 
@@ -39,7 +39,11 @@ Google's Clock app. Standalone: no phone app needed.
 - **Stop** resets the timer (it stays in the list, ready to run again); **+1:00** gives it another minute.
 - Several at once are listed together, with **Stop all** at the bottom.
 - The notification has **Stop** and **+1 min** too, for every finished timer.
-- After two minutes it goes quiet, and a silent notification stays until you stop it.
+- It rings for up to ten minutes, as Google Clock does. Then it gives up and a silent **Missed ·
+  ended at 14:05** notification stays until you stop the timer.
+- Putting the watch **on its charger** stops the ringing (the timer counts as missed).
+- **During a call** it only buzzes - no chime - and chimes again if the call ends while it rings.
+- Timers ring even on a watch that has **just restarted and not been unlocked** yet.
 - First time you open the app it asks to send notifications: say yes, or nothing can alert you.
   If notifications or full-screen alerts are off, a red notice at the top of the list takes you to
   the setting.

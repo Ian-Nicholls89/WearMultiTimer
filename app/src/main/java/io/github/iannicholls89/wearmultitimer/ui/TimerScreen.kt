@@ -12,15 +12,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.FilledIconButton
 import androidx.wear.compose.material3.FilledTonalIconButton
 import androidx.wear.compose.material3.Icon
@@ -35,6 +32,10 @@ import io.github.iannicholls89.wearmultitimer.timer.TimerItem
 import io.github.iannicholls89.wearmultitimer.timer.displayName
 import io.github.iannicholls89.wearmultitimer.timer.displaySeconds
 import io.github.iannicholls89.wearmultitimer.timer.formatCountdown
+import io.github.iannicholls89.wearmultitimer.timer.spokenStatus
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 
 /**
  * One timer, as Google Clock shows it: a ring round the edge draining as time passes, the time
@@ -55,50 +56,54 @@ fun TimerScreen(
     val running = timer.state == TimerItem.State.RUNNING
     val isReset = timer.state == TimerItem.State.RESET
     val remaining = timer.remaining(now)
-    // Read through a State: the indicator only redraws when the progress it reads is one.
-    val progress by rememberUpdatedState(timer.progress(now))
-    ScreenScaffold(timeText = {}) {
+    // The clock shows in the gap at the top of the ring, as in Google Clock.
+    ScreenScaffold {
         Box(Modifier.fillMaxSize()) {
-            CircularProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.fillMaxSize().padding(3.dp),
-                strokeWidth = 8.dp,
-            )
+            TimerRing(timer.progress(now), finished = done)
             Column(
                 Modifier.fillMaxSize().padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(
-                    timer.displayName(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    textAlign = TextAlign.Center,
-                    // Tap the name to rename the timer.
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .clickable(onClickLabel = "Rename", onClick = onRename),
-                )
-                Text(
-                    formatCountdown(remaining),
-                    // Hours need the room: 1:02:03 is three digits wider than 9:41.
-                    style = if (kotlin.math.abs(displaySeconds(remaining)) >= 3600) MaterialTheme.typography.displayMedium
-                    else MaterialTheme.typography.displayLarge,
-                    color = if (done) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                )
-                Text(
-                    when {
-                        done -> "Time's up"
-                        timer.state == TimerItem.State.PAUSED -> "Paused"
-                        else -> ""
+                // Read out as one: "Pasta. Timer running, 9 minutes 41 seconds left."
+                Column(
+                    Modifier.clearAndSetSemantics {
+                        contentDescription = timer.spokenStatus(now)
+                        onClick(label = "Rename") { onRename(); true }
                     },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Text(
+                        timer.displayName(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        // Tap the name to rename the timer.
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .clickable(onClickLabel = "Rename", onClick = onRename),
+                    )
+                    Text(
+                        formatCountdown(remaining),
+                        // Hours need the room: 1:02:03 is three digits wider than 9:41.
+                        style = if (kotlin.math.abs(displaySeconds(remaining)) >= 3600) MaterialTheme.typography.displayMedium
+                        else MaterialTheme.typography.displayLarge,
+                        color = if (done) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                    Text(
+                        when {
+                            done -> "Time's up"
+                            timer.state == TimerItem.State.PAUSED -> "Paused"
+                            else -> ""
+                        },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
                 Spacer(Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     FilledTonalIconButton(onClick = if (isReset) onDelete else onReset) {

@@ -41,3 +41,24 @@ class AppStateTest {
         assertTrue(s.presets.isEmpty())
     }
 }
+
+class DeviceStorageMoveTest {
+    @get:org.junit.Rule val tmp = org.junit.rules.TemporaryFolder()
+
+    @Test fun `the old file moves across once`() {
+        val old = tmp.newFile("old.json").apply { writeText("""{"nextId":5}""") }
+        val new = java.io.File(tmp.root, "device/datastore/timers.json")
+        moveToDeviceStorage(old, new)
+        assertEquals("""{"nextId":5}""", new.readText())
+        assertTrue(!old.exists())
+    }
+
+    @Test fun `never over a newer file, and nothing to move is fine`() {
+        val old = tmp.newFile("old.json").apply { writeText("old") }
+        val new = tmp.newFile("new.json").apply { writeText("new") }
+        moveToDeviceStorage(old, new)
+        assertEquals("new", new.readText())
+        moveToDeviceStorage(java.io.File(tmp.root, "missing.json"), java.io.File(tmp.root, "other.json"))
+        assertTrue(!java.io.File(tmp.root, "other.json").exists())
+    }
+}

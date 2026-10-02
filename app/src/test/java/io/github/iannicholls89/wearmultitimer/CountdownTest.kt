@@ -1,6 +1,7 @@
 package io.github.iannicholls89.wearmultitimer
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -32,6 +33,9 @@ class CountdownTest {
 
     private var fakeNow = 1_700_000_000_000L
 
+    /** What the screen reader says for a timer, which is how the countdown is checked. */
+    private fun said(text: String) = hasContentDescription(text, substring = true)
+
     private fun seed() = runBlocking {
         val store = TimerStore.get(ApplicationProvider.getApplicationContext())
         store.update {
@@ -47,23 +51,23 @@ class CountdownTest {
     @Test fun listCountsDown() {
         seed()
         compose.setContent { WearMultiTimerApp(clock = { fakeNow }, checkForUpdates = false) }
-        compose.waitUntilAtLeastOneExists(hasText("10:00"), 5_000)
+        compose.waitUntilAtLeastOneExists(said("10 minutes left"), 5_000)
         tick(1_000)
-        compose.waitUntilAtLeastOneExists(hasText("9:59"), 5_000)
+        compose.waitUntilAtLeastOneExists(said("9 minutes 59 seconds left"), 5_000)
         tick(60_000)
-        compose.waitUntilAtLeastOneExists(hasText("8:59"), 5_000)
+        compose.waitUntilAtLeastOneExists(said("8 minutes 59 seconds left"), 5_000)
     }
 
     @Test fun timerScreenCountsDown() {
         seed()
         compose.setContent { WearMultiTimerApp(clock = { fakeNow }, checkForUpdates = false) }
-        compose.waitUntilAtLeastOneExists(hasText("10:00"), 5_000)
-        compose.onNodeWithText("10:00").performClick()
+        compose.waitUntilAtLeastOneExists(said("10 minutes left"), 5_000)
+        compose.onNode(said("10 minutes left")).performClick()
         compose.waitUntilAtLeastOneExists(hasText("+1:00"), 5_000)
         tick(2_000)
-        compose.waitUntilAtLeastOneExists(hasText("9:58"), 5_000)
+        compose.waitUntilAtLeastOneExists(said("9 minutes 58 seconds left"), 5_000)
         tick(10 * 60_000)
-        compose.waitUntilAtLeastOneExists(hasText("-0:02"), 5_000)
+        compose.waitUntilAtLeastOneExists(said("2 seconds over"), 5_000)
     }
 
     @Test fun newTimerGoesThroughTheNameStep() {
@@ -80,7 +84,7 @@ class CountdownTest {
         compose.onNodeWithText("Start").performClick()
         compose.waitUntilAtLeastOneExists(hasText("+1:00"), 5_000)
         tick(1_000)
-        compose.waitUntilAtLeastOneExists(hasText("4:59"), 5_000)
+        compose.waitUntilAtLeastOneExists(said("4 minutes 59 seconds left"), 5_000)
     }
 
     @Test fun dimmingShowsTheDimScreenAndWakingComesBack() {
@@ -89,8 +93,8 @@ class CountdownTest {
         compose.setContent {
             WearMultiTimerApp(clock = { fakeNow }, checkForUpdates = false, ambient = ambient, ambientNow = fakeNow)
         }
-        compose.waitUntilAtLeastOneExists(hasText("10:00"), 5_000)
-        compose.onNodeWithText("10:00").performClick()
+        compose.waitUntilAtLeastOneExists(said("10 minutes left"), 5_000)
+        compose.onNode(said("10 minutes left")).performClick()
         compose.waitUntilAtLeastOneExists(hasText("+1:00"), 5_000)
 
         ambient = false
@@ -100,7 +104,7 @@ class CountdownTest {
 
         ambient = null
         tick(1_000)
-        compose.waitUntilAtLeastOneExists(hasText("9:59"), 5_000)
+        compose.waitUntilAtLeastOneExists(said("9 minutes 59 seconds left"), 5_000)
         compose.onNodeWithText("+1:00").assertExists()
     }
 }

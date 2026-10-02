@@ -40,6 +40,10 @@ import io.github.iannicholls89.wearmultitimer.R
 import io.github.iannicholls89.wearmultitimer.timer.TimerItem
 import io.github.iannicholls89.wearmultitimer.timer.displayName
 import io.github.iannicholls89.wearmultitimer.timer.formatCountdown
+import io.github.iannicholls89.wearmultitimer.timer.spokenStatus
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.wear.compose.material3.ButtonDefaults
 
 /** The alert when timers run out: one fills the screen; several are listed, with Stop all at the foot. */
 @Composable
@@ -56,50 +60,57 @@ fun RingScreen(
 
 @Composable
 private fun SingleRing(timer: TimerItem, now: Long, onStop: (Long) -> Unit, onAddMinute: (Long) -> Unit) {
-    ScreenScaffold(timeText = {}) {
-        Column(
-            Modifier.fillMaxSize().padding(horizontal = 20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Text(
-                "Time's up",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-            )
-            Text(
-                timer.displayName(),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(0.85f),
-            )
-            Text(
-                formatCountdown(timer.remaining(now)),
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.error,
-                maxLines = 1,
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                FilledIconButton(
-                    onClick = { onStop(timer.id) },
-                    modifier = Modifier.size(IconButtonDefaults.LargeButtonSize),
-                ) {
-                    Icon(
-                        painterResource(R.drawable.ic_stop),
-                        contentDescription = "Stop",
-                        modifier = Modifier.size(IconButtonDefaults.LargeIconSize),
-                    )
+    ScreenScaffold {
+        Box(Modifier.fillMaxSize()) {
+            TimerRing(0f, finished = true)
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp)
+                    .semantics { contentDescription = timer.spokenStatus(now) },
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    "Time's up",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+                Text(
+                    timer.displayName(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(0.85f),
+                )
+                Text(
+                    formatCountdown(timer.remaining(now)),
+                    style = MaterialTheme.typography.displayLarge,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 1,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    FilledIconButton(
+                        onClick = { onStop(timer.id) },
+                        modifier = Modifier.size(IconButtonDefaults.LargeButtonSize),
+                        colors = stopColors(),
+                    ) {
+                        Icon(
+                            painterResource(R.drawable.ic_stop),
+                            contentDescription = "Stop",
+                            modifier = Modifier.size(IconButtonDefaults.LargeIconSize),
+                        )
+                    }
+                    TextButton(
+                        onClick = { onAddMinute(timer.id) },
+                        modifier = Modifier.size(IconButtonDefaults.LargeButtonSize),
+                        colors = TextButtonDefaults.filledTonalTextButtonColors(),
+                    ) { Text("+1:00", maxLines = 1) }
                 }
-                TextButton(
-                    onClick = { onAddMinute(timer.id) },
-                    modifier = Modifier.size(IconButtonDefaults.LargeButtonSize),
-                    colors = TextButtonDefaults.filledTonalTextButtonColors(),
-                ) { Text("+1:00", maxLines = 1) }
             }
         }
     }
@@ -118,15 +129,29 @@ private fun ManyRing(
     ScreenScaffold(
         scrollState = listState,
         edgeButton = {
-            EdgeButton(onClick = onStopAll, buttonSize = EdgeButtonSize.Medium) { Text("Stop all", maxLines = 1) }
+            EdgeButton(
+                onClick = onStopAll,
+                buttonSize = EdgeButtonSize.Medium,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) { Text("Stop all", maxLines = 1) }
         },
     ) { contentPadding ->
         TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
-            item { ListHeader(Modifier.transformedHeight(this, spec)) { Text("Time's up") } }
+            item {
+                ListHeader(Modifier.transformedHeight(this, spec)) {
+                    Text("Time's up", color = MaterialTheme.colorScheme.error)
+                }
+            }
             items(done, key = { it.id }) { timer ->
                 Card(
                     onClick = {},
-                    modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .transformedHeight(this, spec)
+                        .semantics { contentDescription = timer.spokenStatus(now) },
                     transformation = SurfaceTransformation(spec),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
                 ) {
@@ -154,7 +179,7 @@ private fun ManyRing(
                                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                                     ),
                                 ) { Text("+1:00", style = MaterialTheme.typography.labelMedium, maxLines = 1) }
-                                FilledIconButton(onClick = { onStop(timer.id) }) {
+                                FilledIconButton(onClick = { onStop(timer.id) }, colors = stopColors()) {
                                     Icon(painterResource(R.drawable.ic_stop), contentDescription = "Stop ${timer.displayName()}")
                                 }
                             }
@@ -165,3 +190,10 @@ private fun ManyRing(
         }
     }
 }
+
+/** Stop, in the red of "Time's up". */
+@Composable
+private fun stopColors() = IconButtonDefaults.filledIconButtonColors(
+    containerColor = MaterialTheme.colorScheme.error,
+    contentColor = MaterialTheme.colorScheme.onError,
+)

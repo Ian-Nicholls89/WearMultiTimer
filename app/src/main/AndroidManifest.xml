@@ -54,6 +54,7 @@
         <activity
             android:name=".RingActivity"
             android:exported="false"
+            android:directBootAware="true"
             android:excludeFromRecents="true"
             android:launchMode="singleTask"
             android:showWhenLocked="true"
@@ -61,8 +62,11 @@
             android:turnScreenOn="true"
             tools:ignore="WearRecents" />
 
+        <!-- Everything that rings is direct-boot aware: a timer still rings on a locked watch
+             that has just restarted, before it's unlocked (the timers are kept in device storage). -->
         <service
             android:name=".alarm.RingService"
+            android:directBootAware="true"
             android:exported="false"
             android:foregroundServiceType="systemExempted|specialUse">
             <property
@@ -72,17 +76,21 @@
 
         <receiver
             android:name=".alarm.TimerAlarmReceiver"
+            android:directBootAware="true"
             android:exported="false" />
         <receiver
             android:name=".alarm.TimerActionReceiver"
+            android:directBootAware="true"
             android:exported="false" />
         <receiver
             android:name=".update.InstallResultReceiver"
             android:exported="false" />
         <receiver
             android:name=".alarm.RestoreReceiver"
+            android:directBootAware="true"
             android:exported="true">
             <intent-filter>
+                <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIME_SET" />

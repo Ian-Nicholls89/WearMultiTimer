@@ -28,3 +28,29 @@ fun formatDuration(ms: Long): String {
 }
 
 fun TimerItem.displayName(): String = name?.takeIf { it.isNotBlank() } ?: formatDuration(durationMs)
+
+/** For the screen reader: "9 minutes 41 seconds", "1 hour 2 minutes", "0 seconds". */
+fun spokenDuration(ms: Long): String {
+    val s = kotlin.math.abs(displaySeconds(ms))
+    val h = s / 3600
+    val m = (s % 3600) / 60
+    val sec = s % 60
+    fun unit(n: Long, one: String) = "$n $one" + if (n == 1L) "" else "s"
+    return listOfNotNull(
+        if (h > 0) unit(h, "hour") else null,
+        if (m > 0) unit(m, "minute") else null,
+        if (sec > 0) unit(sec, "second") else null,
+    ).joinToString(" ").ifEmpty { "0 seconds" }
+}
+
+/** What the screen reader says for a timer: "Pasta. Timer running, 9 minutes 41 seconds left." */
+fun TimerItem.spokenStatus(now: Long): String {
+    val left = remaining(now)
+    val status = when {
+        isDone(now) -> "Timer finished, ${spokenDuration(left)} over"
+        state == TimerItem.State.RUNNING -> "Timer running, ${spokenDuration(left)} left"
+        state == TimerItem.State.PAUSED -> "Timer paused, ${spokenDuration(left)} left"
+        else -> "Timer not started, ${spokenDuration(left)}"
+    }
+    return "${displayName()}. $status."
+}

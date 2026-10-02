@@ -5,7 +5,9 @@ import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
-import androidx.datastore.dataStore
+import androidx.datastore.core.DataStoreFactory
+import androidx.datastore.dataStoreFile
+import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import kotlinx.coroutines.flow.Flow
@@ -44,12 +46,36 @@ internal object AppStateSerializer : Serializer<AppState> {
     }
 }
 
-private val Context.timerDataStore: DataStore<AppState> by dataStore(
-    fileName = "timers.json",
-    serializer = AppStateSerializer,
-    // A damaged file loses the timers rather than stopping the app from opening.
-    corruptionHandler = ReplaceFileCorruptionHandler { AppState() },
-)
+private const val FILE_NAME = "timers.json"
+
+@Volatile private var dataStore: DataStore<AppState>? = null
+
+/**
+ * The timers live in the watch's device storage - readable before the first unlock after a
+ * restart - so a timer still rings on a locked watch that has just restarted. (Up to v0.5 they
+ * were in the storage that unlocks with the watch; the first read moves them across.)
+ */
+private fun timerDataStore(context: Context): DataStore<AppState> = dataStore ?: synchronized(TimerStore) {
+    dataStore ?: DataStoreFactory.create(
+        serializer = AppStateSerializer,
+        // A damaged file loses the timers rather than stopping the app from opening.
+        corruptionHandler = ReplaceFileCorruptionHandler { AppState() },
+        produceFile = {
+            val app = context.applicationContext
+            val device = app.createDeviceProtectedStorageContext().dataStoreFile(FILE_NAME)
+            moveToDeviceStorage(from = app.dataStoreFile(FILE_NAME), to = device)
+            device
+        },
+    ).also { dataStore = it }
+}
+
+/** Moves the timers file from where v0.5 and before kept it, once; never over a newer one. */
+internal fun moveToDeviceStorage(from: File, to: File) {
+    if (to.exists() || !from.exists()) return
+    to.parentFile?.mkdirs()
+    from.copyTo(to)
+    from.delete()
+}
 
 /** The saved timers and presets. One per process; the alarms (v0.3) will share it. */
 class TimerStore private constructor(private val store: DataStore<AppState>) {
@@ -61,7 +87,7 @@ class TimerStore private constructor(private val store: DataStore<AppState>) {
         @Volatile private var instance: TimerStore? = null
 
         fun get(context: Context): TimerStore = instance ?: synchronized(this) {
-            instance ?: TimerStore(context.applicationContext.timerDataStore).also { instance = it }
+            instance ?: TimerStore(timerDataStore(context)).also { instance = it }
         }
     }
 }

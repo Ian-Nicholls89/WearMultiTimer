@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.SystemClock
+import android.text.format.DateFormat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.wear.ongoing.OngoingActivity
@@ -41,8 +42,8 @@ object Notifications {
             },
         )
         nm.createNotificationChannel(
-            NotificationChannel(FINISHED_CHANNEL, "Finished timers", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Timers that have run out and gone quiet, until you stop them"
+            NotificationChannel(FINISHED_CHANNEL, "Missed timers", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Timers that rang out without being stopped"
             },
         )
     }
@@ -93,7 +94,10 @@ object Notifications {
             .build()
     }
 
-    /** Timers that have run out and gone quiet: a silent reminder until they're stopped. */
+    /**
+     * Timers that rang out without being stopped (or were silenced on the charger): a silent
+     * "Missed" reminder, saying when they ended, until they're stopped.
+     */
     fun showFinished(context: Context, timers: List<TimerItem>, now: Long) {
         val nm = NotificationManagerCompat.from(context)
         val done = timers.filter { it.isDone(now) }
@@ -106,10 +110,11 @@ object Notifications {
             context, 2, Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
+        val ended = DateFormat.getTimeFormat(context).format(java.util.Date(done.minOf { it.endAtMs!! }))
         val n = NotificationCompat.Builder(context, FINISHED_CHANNEL)
             .setSmallIcon(R.drawable.ic_timer_small)
             .setContentTitle(title(done))
-            .setContentText("Time's up")
+            .setContentText(if (done.size == 1) "Missed · ended at $ended" else "Missed · first ended at $ended")
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setOnlyAlertOnce(true)
             .setContentIntent(open)
