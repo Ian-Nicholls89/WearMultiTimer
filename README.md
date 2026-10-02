@@ -3,8 +3,23 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.1 is the project skeleton — it installs and shows an empty timer list.
-> Timers arrive in v0.2.
+> **Status:** v0.2 — any number of timers: make, run, pause, +1 min, reset, delete, kept when
+> the app closes. There's no alarm yet: a finished timer shows "Time's up" in the app but doesn't
+> buzz. Alarms arrive in v0.3.
+
+| Timers | One timer | New timer |
+|---|---|---|
+| ![Timer list](docs/screenshots/1-list.png) | ![Running timer](docs/screenshots/5-running.png) | ![New timer](docs/screenshots/3-new-timer.png) |
+| ![Time's up](docs/screenshots/7-times-up.png) | ![Paused](docs/screenshots/6-paused-hours.png) | ![Custom duration](docs/screenshots/4-custom.png) |
+
+## Using it
+
+- **New timer** (bottom of the list): tap a common duration to start it straight away, or
+  **Custom** for hours, minutes and seconds.
+- **Tap a timer** to open it: pause/resume in the middle, reset on the left, **+1:00** on the right.
+  Once reset, the left button deletes it. When the time's up the middle button stops it.
+- **Swipe a timer left** in the list to delete it.
+- Swipe right to go back, as everywhere on Wear OS.
 
 ## Planned for version 1
 
@@ -45,6 +60,12 @@ Updates install over the top the same way; your timers are kept.
 ```
 
 Needs JDK 17 and the Android SDK (platform 37).
+
+Screenshots of the screens, rendered on the computer (round, large font):
+
+```
+./gradlew testDebugUnitTest -Pscreenshots --tests '*ScreensTest*'   # app/build/screenshots/
+```
 
 ## Releasing
 

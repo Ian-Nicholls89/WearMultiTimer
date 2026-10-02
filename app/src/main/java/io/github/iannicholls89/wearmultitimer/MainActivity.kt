@@ -1,21 +1,26 @@
 package io.github.iannicholls89.wearmultitimer
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
-import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
-import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material3.AppScaffold
-import androidx.wear.compose.material3.EdgeButton
-import androidx.wear.compose.material3.EdgeButtonSize
-import androidx.wear.compose.material3.ListHeader
-import androidx.wear.compose.material3.MaterialTheme
-import androidx.wear.compose.material3.ScreenScaffold
-import androidx.wear.compose.material3.Text
+import androidx.wear.compose.navigation.SwipeDismissableNavHost
+import androidx.wear.compose.navigation.composable
+import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
+import io.github.iannicholls89.wearmultitimer.timer.TimerStore
+import io.github.iannicholls89.wearmultitimer.ui.CustomDurationScreen
+import io.github.iannicholls89.wearmultitimer.ui.NewTimerScreen
+import io.github.iannicholls89.wearmultitimer.ui.TimerListScreen
+import io.github.iannicholls89.wearmultitimer.ui.TimerScreen
+import io.github.iannicholls89.wearmultitimer.ui.TimerTheme
+import io.github.iannicholls89.wearmultitimer.ui.rememberNow
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,35 +31,58 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun WearMultiTimerApp() {
-    MaterialTheme {
-        AppScaffold {
-            TimerListScreen()
-        }
-    }
-}
+    val context = LocalContext.current
+    val vm: TimerViewModel = viewModel { TimerViewModel(TimerStore.get(context)) }
+    val timers by vm.timers.collectAsStateWithLifecycle()
+    val now = rememberNow(timers.orEmpty())
+    val nav = rememberSwipeDismissableNavController()
 
-/** The home screen: every timer, with "New timer" at the foot of the screen. Empty until v0.2. */
-@Composable
-fun TimerListScreen() {
-    val listState = rememberTransformingLazyColumnState()
-    ScreenScaffold(
-        scrollState = listState,
-        edgeButton = {
-            // Creating timers arrives in v0.2.
-            EdgeButton(onClick = {}, enabled = false, buttonSize = EdgeButtonSize.Medium) {
-                Text("New timer", maxLines = 1)
-            }
-        },
-    ) { contentPadding ->
-        TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
-            item { ListHeader { Text("Timers") } }
-            item {
-                Text(
-                    "No timers yet",
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+    // A new timer opens on its own screen, as in Google Clock; swipe back for the list.
+    val openNew: (Long) -> Unit = { id ->
+        nav.navigate("timer/$id") { popUpTo("list") }
+    }
+
+    TimerTheme {
+        AppScaffold {
+            SwipeDismissableNavHost(navController = nav, startDestination = "list") {
+                composable("list") {
+                    TimerListScreen(
+                        timers = timers,
+                        now = now,
+                        onOpen = { nav.navigate("timer/$it") },
+                        onDelete = vm::delete,
+                        onNew = { nav.navigate("new") },
+                    )
+                }
+                composable("new") {
+                    NewTimerScreen(
+                        onPick = { ms -> vm.create(ms, onCreated = openNew) },
+                        onCustom = { nav.navigate("custom") },
+                    )
+                }
+                composable("custom") {
+                    CustomDurationScreen { ms ->
+                        if (ms <= 0) Toast.makeText(context, "Set a time first", Toast.LENGTH_SHORT).show()
+                        else vm.create(ms, onCreated = openNew)
+                    }
+                }
+                composable("timer/{id}") { entry ->
+                    val id = entry.arguments?.getString("id")?.toLongOrNull()
+                    val timer = timers?.firstOrNull { it.id == id }
+                    if (timer == null) {
+                        // Deleted (or not read yet): back to the list once the timers are in.
+                        if (timers != null) LaunchedEffect(Unit) { nav.popBackStack("list", inclusive = false) }
+                    } else {
+                        TimerScreen(
+                            timer = timer,
+                            now = now,
+                            onStartPause = { vm.startOrPause(timer.id) },
+                            onAddMinute = { vm.addMinute(timer.id) },
+                            onReset = { vm.reset(timer.id) },
+                            onDelete = { vm.delete(timer.id) },
+                        )
+                    }
+                }
             }
         }
     }
