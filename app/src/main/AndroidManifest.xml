@@ -21,6 +21,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Updating itself from the GitHub releases. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Setting the alarm again after the watch restarts. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -72,6 +75,9 @@
             android:exported="false" />
         <receiver
             android:name=".alarm.TimerActionReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".update.InstallResultReceiver"
             android:exported="false" />
         <receiver
             android:name=".alarm.RestoreReceiver"

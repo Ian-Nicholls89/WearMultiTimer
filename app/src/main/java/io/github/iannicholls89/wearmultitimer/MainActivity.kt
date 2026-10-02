@@ -17,12 +17,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.wear.compose.material3.AppScaffold
@@ -37,6 +42,8 @@ import io.github.iannicholls89.wearmultitimer.ui.Notice
 import io.github.iannicholls89.wearmultitimer.ui.TimerListScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerTheme
+import io.github.iannicholls89.wearmultitimer.ui.UpdateUi
+import io.github.iannicholls89.wearmultitimer.update.Updater
 import io.github.iannicholls89.wearmultitimer.ui.rememberNow
 
 class MainActivity : ComponentActivity() {
@@ -51,7 +58,7 @@ class MainActivity : ComponentActivity() {
  * destination's content, so values read out here and passed in would never change on screen.
  */
 @Composable
-fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis) {
+fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis, checkForUpdates: Boolean = true) {
     val context = LocalContext.current
     val vm: TimerViewModel = viewModel { TimerViewModel(TimerController.get(context), clock) }
     val nav = rememberSwipeDismissableNavController()
@@ -74,6 +81,7 @@ fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis) {
                         onDelete = vm::delete,
                         onNew = { nav.navigate("new") },
                         notices = rememberAlertNotices(),
+                        update = rememberUpdateUi(checkForUpdates),
                     )
                 }
                 composable("new") {
@@ -182,4 +190,59 @@ private fun openSettings(context: Context, intent: Intent) {
     } catch (_: Exception) {
         context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:${context.packageName}".toUri()))
     }
+}
+
+/** Looks for a newer release whenever the list comes on screen (at most every half hour), and offers it. */
+@Composable
+private fun rememberUpdateUi(checkForUpdates: Boolean): UpdateUi {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val status by Updater.status.collectAsStateWithLifecycle()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    if (checkForUpdates) {
+        LaunchedEffect(lifecycle) {
+            lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { Updater.check(context) }
+        }
+    }
+    val release = when (val s = status) {
+        is Updater.Status.Available -> s.release
+        is Updater.Status.Failed -> s.release
+        else -> null
+    }
+    val busy = status is Updater.Status.Checking || status is Updater.Status.Downloading ||
+        status is Updater.Status.Installing
+    return UpdateUi(
+        installed = remember { Updater.installedVersionName(context) },
+        line = when (val s = status) {
+            Updater.Status.Idle -> "Tap to check for updates"
+            Updater.Status.Checking -> "Checking for updates…"
+            Updater.Status.UpToDate -> "Up to date"
+            is Updater.Status.Available -> "${s.release.versionName} is out"
+            Updater.Status.Downloading -> "Downloading the update…"
+            Updater.Status.Installing -> "Installing…"
+            is Updater.Status.Failed -> s.message
+        },
+        offer = when {
+            status is Updater.Status.Downloading -> "Downloading…"
+            status is Updater.Status.Installing -> "Installing…"
+            release != null -> "Update to ${release.versionName}"
+            else -> null
+        },
+        busy = busy,
+        onInstall = {
+            val r = release ?: return@UpdateUi
+            scope.launch {
+                when (Updater.install(context, r)) {
+                    Updater.InstallResult.NeedsPermission -> {
+                        Toast.makeText(context, "Allow this app to install updates, then tap Update again", Toast.LENGTH_LONG).show()
+                        if (!Updater.openPermission(context)) {
+                            Toast.makeText(context, "No setting for it on this watch: see the README for the ADB command", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    is Updater.InstallResult.Failed, Updater.InstallResult.Started -> Unit
+                }
+            }
+        },
+        onCheck = { scope.launch { Updater.check(context, force = true) } },
+    )
 }

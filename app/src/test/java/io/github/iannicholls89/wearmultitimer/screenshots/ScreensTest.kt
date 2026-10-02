@@ -13,6 +13,7 @@ import io.github.iannicholls89.wearmultitimer.ui.RingScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerListScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerTheme
+import io.github.iannicholls89.wearmultitimer.ui.UpdateUi
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,6 +77,20 @@ class ScreensTest {
         TimerListScreen(
             listOf(pasta), now, {}, {}, {},
             notices = listOf(Notice("Notifications off: timers can't alert you. Tap to fix.") {}),
+        )
+    }
+
+    @Test fun update() = shoot("13-list-update") {
+        TimerListScreen(
+            listOf(pasta, laundry), now, {}, {}, {},
+            update = UpdateUi(installed = "0.3.3", line = "0.4 is out", offer = "Update to 0.4"),
+        )
+    }
+
+    @Test fun updateFooter() = shoot("14-list-version") {
+        TimerListScreen(
+            emptyList(), now, {}, {}, {},
+            update = UpdateUi(installed = "0.3.3", line = "Up to date"),
         )
     }
 

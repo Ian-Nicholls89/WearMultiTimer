@@ -49,6 +49,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp app/build/outputs/apk/release/app-release.apk "WearMultiTimer-$GITHUB_REF_NAME.apk"
-          gh release create "$GITHUB_REF_NAME" "WearMultiTimer-$GITHUB_REF_NAME.apk" \
+          apk="WearMultiTimer-$GITHUB_REF_NAME.apk"
+          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          # What the app reads to find its own updates (releases/latest/download/version.json).
+          code=$(grep '^appVersionCode=' gradle.properties | cut -d= -f2)
+          printf '{"versionCode":%s,"versionName":"%s","apkUrl":"https://github.com/%s/releases/download/%s/%s"}\n' \
+            "$code" "${GITHUB_REF_NAME#v}" "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" "$apk" > version.json
+          cat version.json
+          gh release create "$GITHUB_REF_NAME" "$apk" version.json \
             --title "WearMultiTimer $GITHUB_REF_NAME" --generate-notes

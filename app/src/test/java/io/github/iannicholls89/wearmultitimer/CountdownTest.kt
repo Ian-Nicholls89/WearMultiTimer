@@ -39,7 +39,7 @@ class CountdownTest {
 
     @Test fun listCountsDown() {
         seed()
-        compose.setContent { WearMultiTimerApp(clock = { fakeNow }) }
+        compose.setContent { WearMultiTimerApp(clock = { fakeNow }, checkForUpdates = false) }
         compose.waitUntilAtLeastOneExists(hasText("10:00"), 5_000)
         tick(1_000)
         compose.waitUntilAtLeastOneExists(hasText("9:59"), 5_000)
@@ -49,7 +49,7 @@ class CountdownTest {
 
     @Test fun timerScreenCountsDown() {
         seed()
-        compose.setContent { WearMultiTimerApp(clock = { fakeNow }) }
+        compose.setContent { WearMultiTimerApp(clock = { fakeNow }, checkForUpdates = false) }
         compose.waitUntilAtLeastOneExists(hasText("10:00"), 5_000)
         compose.onNodeWithText("10:00").performClick()
         compose.waitUntilAtLeastOneExists(hasText("+1:00"), 5_000)

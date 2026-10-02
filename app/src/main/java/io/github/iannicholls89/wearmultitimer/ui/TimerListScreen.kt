@@ -37,6 +37,19 @@ import io.github.iannicholls89.wearmultitimer.timer.sortedForList
 data class Notice(val text: String, val onClick: () -> Unit)
 
 /**
+ * The app's own updates: [offer] is the button at the top ("Update to 0.4"), when there's one;
+ * the foot of the list shows the version installed and [line], and checks again when tapped.
+ */
+data class UpdateUi(
+    val installed: String,
+    val line: String,
+    val offer: String? = null,
+    val busy: Boolean = false,
+    val onInstall: () -> Unit = {},
+    val onCheck: () -> Unit = {},
+)
+
+/**
  * Home: every timer, finished ones first, then the soonest to finish. Tap one to open it;
  * swipe one left to delete it. [timers] is null until the saved ones have been read.
  */
@@ -48,6 +61,7 @@ fun TimerListScreen(
     onDelete: (Long) -> Unit,
     onNew: () -> Unit,
     notices: List<Notice> = emptyList(),
+    update: UpdateUi? = null,
 ) {
     val listState = rememberTransformingLazyColumnState()
     val spec = rememberTransformationSpec()
@@ -61,6 +75,17 @@ fun TimerListScreen(
     ) { contentPadding ->
         TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
             item { ListHeader(Modifier.transformedHeight(this, spec)) { Text("Timers") } }
+            update?.offer?.let { offer ->
+                item {
+                    Button(
+                        onClick = update.onInstall,
+                        enabled = !update.busy,
+                        modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+                        transformation = SurfaceTransformation(spec),
+                        icon = { Icon(painterResource(R.drawable.ic_download), contentDescription = null) },
+                    ) { Text(offer, maxLines = 2) }
+                }
+            }
             items(notices) { notice ->
                 Button(
                     onClick = notice.onClick,
@@ -96,6 +121,18 @@ fun TimerListScreen(
                     modifier = Modifier.transformedHeight(this, spec),
                 ) {
                     TimerRow(timer, now, { onOpen(timer.id) }, SurfaceTransformation(spec))
+                }
+            }
+            update?.let { u ->
+                item {
+                    Button(
+                        onClick = u.onCheck,
+                        enabled = !u.busy,
+                        modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+                        transformation = SurfaceTransformation(spec),
+                        colors = ButtonDefaults.childButtonColors(),
+                        secondaryLabel = { Text(u.line, maxLines = 2) },
+                    ) { Text("Version ${u.installed}", maxLines = 1) }
                 }
             }
         }

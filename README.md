@@ -3,7 +3,7 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.3.2 — any number of timers, and they ring: a finished timer buzzes and shows a
+> **Status:** v0.3.3 — any number of timers, and they ring: a finished timer buzzes and shows a
 > full-screen alert even with the app closed or the watch asleep, and timers survive a restart.
 > Names and presets arrive in v0.4.
 
@@ -63,7 +63,21 @@ Download `WearMultiTimer-vX.Y.apk` from the [latest release](../../releases/late
 **Wear Installer 2** (from the phone, no computer): follow the app's instructions for wireless
 debugging, then pick the downloaded APK.
 
-Updates install over the top the same way; your timers are kept.
+### Updates
+
+From v0.3.3 the app updates itself. When it's opened it looks for a newer release (at most every
+half hour); if there is one, **Update to x.y** appears at the top of the list. Tap it, and confirm
+on the watch's install screen. The foot of the list shows the version installed - tap it to look
+again straight away. Your timers are kept.
+
+The first time, the watch asks to let the app install updates. If it has no screen for that, allow
+it once with ADB:
+
+```
+adb shell appops set io.github.iannicholls89.wearmultitimer REQUEST_INSTALL_PACKAGES allow
+```
+
+Versions before v0.3.3 can't update themselves: install v0.3.3 by ADB once.
 
 ### Let alerts fill the screen (once)
 
@@ -97,7 +111,8 @@ Screenshots of the screens, rendered on the computer (round, large font):
 
 1. Bump `appVersionCode` (by 1) and `appVersionName` in `gradle.properties`.
 2. Commit, then tag with the same name: `git tag v0.2 && git push origin main v0.2`.
-3. The *Release* workflow builds the signed APK and publishes the GitHub release.
+3. The *Release* workflow builds the signed APK and publishes the GitHub release, with a
+   `version.json` beside it - which is how installed apps find the update.
 
 ### Signing key (one-off setup)
 
