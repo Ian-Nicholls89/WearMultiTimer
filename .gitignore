@@ -1,0 +1,25 @@
+# Build outputs
+/build
+/app/build
+/*.apk
+/*.aab
+
+# Gradle
+/.gradle
+.kotlin/
+# NB: gradle-wrapper.jar is deliberately tracked - CI has no separate Gradle
+# install, so ./gradlew needs it present in the checkout.
+
+# IDE
+/.idea
+*.iml
+.DS_Store
+
+# Local properties (contains SDK paths)
+/local.properties
+
+# The release signing identity. Never commit these - the .jks is the private key
+# and keystore.properties holds its password.
+*.keystore
+*.jks
+/keystore.properties
