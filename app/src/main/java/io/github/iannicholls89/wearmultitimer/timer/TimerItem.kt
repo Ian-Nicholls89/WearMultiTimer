@@ -31,6 +31,9 @@ data class TimerItem(
     /** Ran out and not yet stopped. */
     fun isDone(now: Long): Boolean = state == State.RUNNING && remaining(now) <= 0
 
+    /** Done, and still within the time it buzzes for; after that it waits silently as "Time's up". */
+    fun isRinging(now: Long): Boolean = isDone(now) && -remaining(now) < RING_FOR_MS
+
     /** The share of the ring still to go, 1 at the start down to 0 at the end. */
     fun progress(now: Long): Float =
         if (totalMs <= 0) 0f else (remaining(now).toFloat() / totalMs).coerceIn(0f, 1f)
@@ -56,6 +59,9 @@ data class TimerItem(
 
     companion object {
         const val MINUTE = 60_000L
+
+        /** How long a finished timer buzzes before it goes quiet, so a watch left on the side doesn't buzz on. */
+        const val RING_FOR_MS = 2 * MINUTE
     }
 }
 
@@ -87,3 +93,7 @@ fun List<TimerItem>.millisToNextTick(now: Long): Long? = filter { it.state == Ti
         val sub = Math.floorMod(toEnd, 1000L)
         if (sub == 0L) 1000L else sub
     }
+
+/** When the next running timer runs out (the alarm to set), or null if none is still counting down. */
+fun List<TimerItem>.nextAlarmAt(now: Long): Long? =
+    filter { it.state == TimerItem.State.RUNNING && it.endAtMs!! > now }.minOfOrNull { it.endAtMs!! }

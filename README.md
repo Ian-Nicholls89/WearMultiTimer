@@ -3,14 +3,14 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.2.1 — any number of timers: make, run, pause, +1 min, reset, delete, kept when
-> the app closes. There's no alarm yet: a finished timer shows "Time's up" in the app but doesn't
-> buzz. Alarms arrive in v0.3.
+> **Status:** v0.3 — any number of timers, and they ring: a finished timer buzzes and shows a
+> full-screen alert even with the app closed or the watch asleep, and timers survive a restart.
+> Names and presets arrive in v0.4.
 
 | Timers | One timer | New timer |
 |---|---|---|
 | ![Timer list](docs/screenshots/1-list.png) | ![Running timer](docs/screenshots/5-running.png) | ![New timer](docs/screenshots/3-new-timer.png) |
-| ![Time's up](docs/screenshots/7-times-up.png) | ![Paused](docs/screenshots/6-paused-hours.png) | ![Custom duration](docs/screenshots/4-custom.png) |
+| ![Time's up](docs/screenshots/10-ring-one.png) | ![Several finished](docs/screenshots/11-ring-many.png) | ![Custom duration](docs/screenshots/4-custom.png) |
 
 ## Using it
 
@@ -20,6 +20,18 @@ Google's Clock app. Standalone: no phone app needed.
   Once reset, the left button deletes it. When the time's up the middle button stops it.
 - **Swipe a timer left** in the list to delete it.
 - Swipe right to go back, as everywhere on Wear OS.
+
+### When a timer finishes
+
+- The watch buzzes, and plays the alarm sound unless it's on vibrate or silent, with a full-screen
+  **Time's up** showing the timer and how long ago it finished.
+- **Stop** resets the timer (it stays in the list, ready to run again); **+1:00** gives it another minute.
+- Several at once are listed together, with **Stop all** at the bottom.
+- The notification has **Stop** and **+1 min** too, for every finished timer.
+- After two minutes it goes quiet, and a silent notification stays until you stop it.
+- First time you open the app it asks to send notifications: say yes, or nothing can alert you.
+  If notifications or full-screen alerts are off, a red notice at the top of the list takes you to
+  the setting.
 
 ## Planned for version 1
 

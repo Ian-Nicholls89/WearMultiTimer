@@ -110,3 +110,33 @@ class TimerItemTest {
         assertNull(listOf(a.pause(t0 + 1), TimerItem(id = 3, durationMs = 1)).millisToNextTick(t0))
     }
 }
+
+class TimerAlarmLogicTest {
+    private val t0 = 1_000_000L
+
+    @Test fun `a finished timer rings for two minutes, then waits quietly`() {
+        val t = TimerItem(id = 1, durationMs = 60_000).start(t0)
+        assertFalse(t.isRinging(t0 + 59_999))
+        assertTrue(t.isRinging(t0 + 60_000))
+        assertTrue(t.isRinging(t0 + 60_000 + TimerItem.RING_FOR_MS - 1))
+        assertFalse(t.isRinging(t0 + 60_000 + TimerItem.RING_FOR_MS))
+        assertTrue(t.isDone(t0 + 60_000 + TimerItem.RING_FOR_MS))
+    }
+
+    @Test fun `plus one minute or stop ends the ringing`() {
+        val t = TimerItem(id = 1, durationMs = 60_000).start(t0)
+        val at = t0 + 70_000
+        assertFalse(t.addMinute(at).isRinging(at))
+        assertFalse(t.reset().isRinging(at))
+    }
+
+    @Test fun `the alarm is set for the next running timer to finish`() {
+        val a = TimerItem(id = 1, durationMs = 300_000).start(t0)
+        val b = TimerItem(id = 2, durationMs = 120_000).start(t0)
+        val paused = TimerItem(id = 3, durationMs = 60_000).start(t0).pause(t0 + 1)
+        val finished = TimerItem(id = 4, durationMs = 10_000).start(t0)
+        assertEquals(t0 + 120_000, listOf(a, b, paused, finished).nextAlarmAt(t0 + 20_000))
+        assertEquals(t0 + 300_000, listOf(a, b).nextAlarmAt(t0 + 120_000))
+        assertNull(listOf(paused, finished).nextAlarmAt(t0 + 20_000))
+    }
+}

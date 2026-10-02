@@ -2,9 +2,8 @@ package io.github.iannicholls89.wearmultitimer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.iannicholls89.wearmultitimer.timer.AppState
+import io.github.iannicholls89.wearmultitimer.alarm.TimerController
 import io.github.iannicholls89.wearmultitimer.timer.TimerItem
-import io.github.iannicholls89.wearmultitimer.timer.TimerStore
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -12,12 +11,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class TimerViewModel(
-    private val store: TimerStore,
+    private val controller: TimerController,
     private val clock: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
 
     /** Null until the saved timers have been read, so the list doesn't flash "No timers yet". */
-    val timers: StateFlow<List<TimerItem>?> = store.state
+    val timers: StateFlow<List<TimerItem>?> = controller.store.state
         .map { it.timers }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -26,7 +25,7 @@ class TimerViewModel(
         viewModelScope.launch {
             val now = clock()
             var id = 0L
-            store.update { s ->
+            controller.update(now) { s ->
                 id = s.nextId
                 val timer = TimerItem(id = id, name = name, durationMs = durationMs, createdAtMs = now).start(now)
                 s.copy(timers = s.timers + timer, nextId = id + 1)
@@ -44,13 +43,14 @@ class TimerViewModel(
     fun reset(id: Long) = edit(id) { t, _ -> t.reset() }
 
     fun delete(id: Long) {
-        viewModelScope.launch { store.update { s -> s.copy(timers = s.timers.filterNot { it.id == id }) } }
+        val now = clock()
+        viewModelScope.launch { controller.update(now) { s -> s.copy(timers = s.timers.filterNot { it.id == id }) } }
     }
 
     private fun edit(id: Long, change: (TimerItem, Long) -> TimerItem) {
         viewModelScope.launch {
             val now = clock()
-            store.update { s: AppState -> s.copy(timers = s.timers.map { if (it.id == id) change(it, now) else it }) }
+            controller.update(now) { s -> s.copy(timers = s.timers.map { if (it.id == id) change(it, now) else it }) }
         }
     }
 }

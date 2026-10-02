@@ -8,6 +8,8 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import io.github.iannicholls89.wearmultitimer.timer.TimerItem
 import io.github.iannicholls89.wearmultitimer.ui.CustomDurationScreen
 import io.github.iannicholls89.wearmultitimer.ui.NewTimerScreen
+import io.github.iannicholls89.wearmultitimer.ui.Notice
+import io.github.iannicholls89.wearmultitimer.ui.RingScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerListScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerTheme
@@ -61,6 +63,20 @@ class ScreensTest {
 
     @Test fun hours() = shoot("9-running-hours") {
         TimerScreen(TimerItem(id = 6, name = "Slow cooker", durationMs = 4 * 60 * min).start(now - 37 * min - 30_000), now, {}, {}, {}, {})
+    }
+
+    @Test fun ringOne() = shoot("10-ring-one") { RingScreen(listOf(tea), now, {}, {}, {}) }
+
+    @Test fun ringMany() = shoot("11-ring-many") {
+        val eggs = TimerItem(id = 7, name = "Eggs", durationMs = 7 * min).start(now - 7 * min - 3_000)
+        RingScreen(listOf(tea, eggs), now, {}, {}, {})
+    }
+
+    @Test fun notice() = shoot("12-list-notice") {
+        TimerListScreen(
+            listOf(pasta), now, {}, {}, {},
+            notices = listOf(Notice("Notifications off: timers can't alert you. Tap to fix.") {}),
+        )
     }
 
     @Test fun reset() = shoot("8-reset") { TimerScreen(unnamed, now, {}, {}, {}, {}) }

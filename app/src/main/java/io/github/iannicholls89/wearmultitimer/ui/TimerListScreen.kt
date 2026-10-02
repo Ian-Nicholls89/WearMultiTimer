@@ -31,6 +31,9 @@ import io.github.iannicholls89.wearmultitimer.timer.displayName
 import io.github.iannicholls89.wearmultitimer.timer.formatCountdown
 import io.github.iannicholls89.wearmultitimer.timer.sortedForList
 
+/** Something stopping the alerts from working, with what fixes it. */
+data class Notice(val text: String, val onClick: () -> Unit)
+
 /**
  * Home: every timer, finished ones first, then the soonest to finish. Tap one to open it;
  * swipe one left to delete it. [timers] is null until the saved ones have been read.
@@ -42,6 +45,7 @@ fun TimerListScreen(
     onOpen: (Long) -> Unit,
     onDelete: (Long) -> Unit,
     onNew: () -> Unit,
+    notices: List<Notice> = emptyList(),
 ) {
     val listState = rememberTransformingLazyColumnState()
     val spec = rememberTransformationSpec()
@@ -55,6 +59,17 @@ fun TimerListScreen(
     ) { contentPadding ->
         TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
             item { ListHeader(Modifier.transformedHeight(this, spec)) { Text("Timers") } }
+            items(notices) { notice ->
+                Button(
+                    onClick = notice.onClick,
+                    modifier = Modifier.fillMaxWidth().transformedHeight(this, spec),
+                    transformation = SurfaceTransformation(spec),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                    ),
+                ) { Text(notice.text, style = MaterialTheme.typography.labelMedium) }
+            }
             if (timers?.isEmpty() == true) {
                 item {
                     Text(

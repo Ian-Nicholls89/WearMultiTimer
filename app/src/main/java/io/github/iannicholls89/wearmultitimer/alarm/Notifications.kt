@@ -1,0 +1,114 @@
+package io.github.iannicholls89.wearmultitimer.alarm
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import io.github.iannicholls89.wearmultitimer.MainActivity
+import io.github.iannicholls89.wearmultitimer.R
+import io.github.iannicholls89.wearmultitimer.RingActivity
+import io.github.iannicholls89.wearmultitimer.timer.TimerItem
+import io.github.iannicholls89.wearmultitimer.timer.displayName
+
+object Notifications {
+    const val RINGING_ID = 1
+    private const val FINISHED_ID = 2
+    private const val RINGING_CHANNEL = "ringing"
+    private const val FINISHED_CHANNEL = "finished"
+
+    private fun channels(context: Context) {
+        val nm = context.getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(
+            NotificationChannel(RINGING_CHANNEL, "Time's up", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "A timer that has just run out"
+                // The ringing service buzzes and plays the sound itself, for as long as it rings.
+                setSound(null, null)
+                enableVibration(false)
+            },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(FINISHED_CHANNEL, "Finished timers", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Timers that have run out and gone quiet, until you stop them"
+            },
+        )
+    }
+
+    /** Covers both the permission (Android 13+) and notifications switched off for the app. */
+    fun canPost(context: Context): Boolean = NotificationManagerCompat.from(context).areNotificationsEnabled()
+
+    /** Opens the full-screen alert. */
+    fun ringScreenIntent(context: Context): PendingIntent = PendingIntent.getActivity(
+        context, 1,
+        Intent(context, RingActivity::class.java),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    private fun action(context: Context, action: String, code: Int) = PendingIntent.getBroadcast(
+        context, code,
+        Intent(context, TimerActionReceiver::class.java).setAction(action),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+
+    private fun title(done: List<TimerItem>) =
+        if (done.size == 1) done[0].displayName() else "${done.size} timers"
+
+    /** The ringing service's notification: shown full screen when the watch is asleep. */
+    fun ringing(context: Context, ringing: List<TimerItem>): Notification {
+        channels(context)
+        val open = ringScreenIntent(context)
+        return NotificationCompat.Builder(context, RINGING_CHANNEL)
+            .setSmallIcon(R.drawable.ic_timer_small)
+            .setContentTitle(if (ringing.isEmpty()) "Time's up" else title(ringing))
+            .setContentText(
+                if (ringing.size > 1) ringing.joinToString(", ") { it.displayName() } + " - time's up"
+                else "Time's up",
+            )
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(open)
+            .setFullScreenIntent(open, true)
+            .apply {
+                // Counts up the overtime, as the timer's own screen does.
+                ringing.singleOrNull()?.endAtMs?.let { setWhen(it).setShowWhen(true).setUsesChronometer(true) }
+            }
+            .addAction(R.drawable.ic_stop, "Stop", action(context, TimerActionReceiver.ACTION_STOP, 10))
+            .addAction(R.drawable.ic_add, "+1 min", action(context, TimerActionReceiver.ACTION_ADD_MINUTE, 11))
+            .build()
+    }
+
+    /** Timers that have run out and gone quiet: a silent reminder until they're stopped. */
+    fun showFinished(context: Context, timers: List<TimerItem>, now: Long) {
+        val nm = NotificationManagerCompat.from(context)
+        val done = timers.filter { it.isDone(now) }
+        if (done.isEmpty() || !canPost(context)) {
+            nm.cancel(FINISHED_ID)
+            return
+        }
+        channels(context)
+        val open = PendingIntent.getActivity(
+            context, 2, Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val n = NotificationCompat.Builder(context, FINISHED_CHANNEL)
+            .setSmallIcon(R.drawable.ic_timer_small)
+            .setContentTitle(title(done))
+            .setContentText("Time's up")
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(open)
+            .addAction(R.drawable.ic_stop, "Stop", action(context, TimerActionReceiver.ACTION_STOP, 10))
+            .build()
+        try {
+            nm.notify(FINISHED_ID, n)
+        } catch (_: SecurityException) {
+            // Notifications switched off between the check and here.
+        }
+    }
+}
