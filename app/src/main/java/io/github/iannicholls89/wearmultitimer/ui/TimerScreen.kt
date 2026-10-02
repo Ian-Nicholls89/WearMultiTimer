@@ -1,5 +1,6 @@
 package io.github.iannicholls89.wearmultitimer.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -48,6 +49,7 @@ fun TimerScreen(
     onAddMinute: () -> Unit,
     onReset: () -> Unit,
     onDelete: () -> Unit,
+    onRename: () -> Unit = {},
 ) {
     val done = timer.isDone(now)
     val running = timer.state == TimerItem.State.RUNNING
@@ -74,7 +76,10 @@ fun TimerScreen(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(0.8f),
+                    // Tap the name to rename the timer.
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .clickable(onClickLabel = "Rename", onClick = onRename),
                 )
                 Text(
                     formatCountdown(remaining),

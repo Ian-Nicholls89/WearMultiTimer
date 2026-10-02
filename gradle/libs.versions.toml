@@ -6,6 +6,8 @@ activityCompose = "1.13.0"
 composeBom = "2026.09.00"
 wearCompose = "1.7.0"
 coroutines = "1.11.0"
+wearInput = "1.2.0"
+wearOngoing = "1.1.0"
 lifecycle = "2.11.0"
 datastore = "1.2.1"
 serialization = "1.11.0"
@@ -33,6 +35,8 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 roborazzi = { group = "io.github.takahirom.roborazzi", name = "roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { group = "io.github.takahirom.roborazzi", name = "roborazzi-compose", version.ref = "roborazzi" }
+wear-input = { group = "androidx.wear", name = "wear-input", version.ref = "wearInput" }
+wear-ongoing = { group = "androidx.wear", name = "wear-ongoing", version.ref = "wearOngoing" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]

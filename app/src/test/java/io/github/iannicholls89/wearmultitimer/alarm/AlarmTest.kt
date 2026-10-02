@@ -59,6 +59,24 @@ class AlarmTest {
         assertEquals(t.endAtMs, alarms.peekNextScheduledAlarm()?.triggerAtTime)
     }
 
+    @Test fun `a running timer shows at the foot of the watch face, and goes when paused`() {
+        val nm = shadowOf(context.getSystemService(android.app.NotificationManager::class.java))
+        val pasta = TimerItem(id = 1, name = "Pasta", durationMs = 600_000).start(now)
+        val tea = TimerItem(id = 2, name = "Tea", durationMs = 240_000).start(now)
+        set(pasta, tea)
+        val shown = nm.getNotification(Notifications.RUNNING_ID)
+        assertNotNull(shown)
+        assertTrue("ongoing", shown.flags and android.app.Notification.FLAG_ONGOING_EVENT != 0)
+        // The soonest first, and how many more.
+        assertEquals("Tea +1", shown.extras.getString(android.app.Notification.EXTRA_TITLE))
+        // The Ongoing Activity travels in the notification's extras (the test's notification
+        // manager can't hand it back the way the watch does).
+        assertTrue("an Ongoing Activity", shown.extras.keySet().any { it.startsWith("android.wearable.ongoingactivities") })
+
+        set(pasta.pause(now), tea.pause(now))
+        assertNull(nm.getNotification(Notifications.RUNNING_ID))
+    }
+
     @Test fun `pausing the only running timer cancels the alarm`() {
         val t = TimerItem(id = 1, durationMs = 300_000).start(now)
         set(t)

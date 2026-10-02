@@ -96,6 +96,10 @@ dependencies {
     // The timers and presets, saved as one JSON file.
     implementation(libs.androidx.datastore)
     implementation(libs.kotlinx.serialization.json)
+    // Naming timers by keyboard or voice.
+    implementation(libs.wear.input)
+    // The running timer at the foot of the watch face.
+    implementation(libs.wear.ongoing)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
     // Screenshots of the watch screens on the JVM, run with -Pscreenshots only.

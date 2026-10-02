@@ -6,8 +6,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.wear.ongoing.OngoingActivity
+import androidx.wear.ongoing.Status
 import io.github.iannicholls89.wearmultitimer.MainActivity
 import io.github.iannicholls89.wearmultitimer.R
 import io.github.iannicholls89.wearmultitimer.RingActivity
@@ -17,8 +20,10 @@ import io.github.iannicholls89.wearmultitimer.timer.displayName
 object Notifications {
     const val RINGING_ID = 1
     private const val FINISHED_ID = 2
+    const val RUNNING_ID = 3
     private const val RINGING_CHANNEL = "ringing"
     private const val FINISHED_CHANNEL = "finished"
+    private const val RUNNING_CHANNEL = "running"
 
     private fun channels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
@@ -28,6 +33,11 @@ object Notifications {
                 // The ringing service buzzes and plays the sound itself, for as long as it rings.
                 setSound(null, null)
                 enableVibration(false)
+            },
+        )
+        nm.createNotificationChannel(
+            NotificationChannel(RUNNING_CHANNEL, "Running timers", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "The running timer, at the foot of the watch face"
             },
         )
         nm.createNotificationChannel(
@@ -109,6 +119,59 @@ object Notifications {
             nm.notify(FINISHED_ID, n)
         } catch (_: SecurityException) {
             // Notifications switched off between the check and here.
+        }
+    }
+
+    /**
+     * While any timer runs, its icon sits at the foot of the watch face (an Ongoing Activity)
+     * counting down the soonest one; tapping it opens the app. Gone when none is running.
+     */
+    fun showRunning(context: Context, timers: List<TimerItem>, now: Long) {
+        val nm = NotificationManagerCompat.from(context)
+        val running = timers
+            .filter { it.state == TimerItem.State.RUNNING && !it.isDone(now) }
+            .sortedBy { it.endAtMs }
+        if (running.isEmpty() || !canPost(context)) {
+            nm.cancel(RUNNING_ID)
+            return
+        }
+        channels(context)
+        val next = running.first()
+        val title = next.displayName() + if (running.size > 1) " +${running.size - 1}" else ""
+        val open = PendingIntent.getActivity(
+            context, 3, Intent(context, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val builder = NotificationCompat.Builder(context, RUNNING_CHANNEL)
+            .setSmallIcon(R.drawable.ic_timer_small)
+            .setContentTitle(title)
+            .setContentText(if (running.size > 1) "${running.size} timers running" else "Running")
+            .setCategory(NotificationCompat.CATEGORY_STOPWATCH)
+            .setOngoing(true)
+            .setSilent(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(open)
+            .setWhen(next.endAtMs!!)
+            .setShowWhen(true)
+            .setUsesChronometer(true)
+            .setChronometerCountDown(true)
+        // The watch counts the part down itself, from the time since it started up.
+        val endOnBootClock = SystemClock.elapsedRealtime() + (next.endAtMs - now)
+        OngoingActivity.Builder(context, RUNNING_ID, builder)
+            .setStaticIcon(R.drawable.ic_timer_small)
+            .setTouchIntent(open)
+            .setStatus(
+                Status.Builder()
+                    .addTemplate("#name# #time#")
+                    .addPart("name", Status.TextPart(title))
+                    .addPart("time", Status.TimerPart(endOnBootClock))
+                    .build(),
+            )
+            .build()
+            .apply(context)
+        try {
+            nm.notify(RUNNING_ID, builder.build())
+        } catch (_: SecurityException) {
         }
     }
 }

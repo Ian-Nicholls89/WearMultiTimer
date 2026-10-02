@@ -7,7 +7,9 @@ import androidx.wear.compose.material3.AppScaffold
 import com.github.takahirom.roborazzi.captureRoboImage
 import io.github.iannicholls89.wearmultitimer.timer.TimerItem
 import io.github.iannicholls89.wearmultitimer.ui.CustomDurationScreen
+import io.github.iannicholls89.wearmultitimer.ui.NameTimerScreen
 import io.github.iannicholls89.wearmultitimer.ui.NewTimerScreen
+import io.github.iannicholls89.wearmultitimer.timer.Preset
 import io.github.iannicholls89.wearmultitimer.ui.Notice
 import io.github.iannicholls89.wearmultitimer.ui.RingScreen
 import io.github.iannicholls89.wearmultitimer.ui.TimerListScreen
@@ -93,6 +95,14 @@ class ScreensTest {
             update = UpdateUi(installed = "0.3.3", line = "Up to date"),
         )
     }
+
+    @Test fun newWithPresets() = shoot("15-new-presets") {
+        NewTimerScreen({}, {}, presets = listOf(Preset(1, "Pasta", 10 * min), Preset(2, "Boiled eggs", 7 * min)))
+    }
+
+    @Test fun nameStep() = shoot("16-name-step") { NameTimerScreen(10 * min, null, false, {}, {}, {}) }
+
+    @Test fun nameStepNamed() = shoot("17-name-step-named") { NameTimerScreen(10 * min, "Pasta", true, {}, {}, {}) }
 
     @Test fun reset() = shoot("8-reset") { TimerScreen(unnamed, now, {}, {}, {}, {}) }
 }

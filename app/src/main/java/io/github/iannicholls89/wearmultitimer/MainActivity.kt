@@ -37,6 +37,7 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import io.github.iannicholls89.wearmultitimer.alarm.Notifications
 import io.github.iannicholls89.wearmultitimer.alarm.TimerController
 import io.github.iannicholls89.wearmultitimer.ui.CustomDurationScreen
+import io.github.iannicholls89.wearmultitimer.ui.NameTimerScreen
 import io.github.iannicholls89.wearmultitimer.ui.NewTimerScreen
 import io.github.iannicholls89.wearmultitimer.ui.Notice
 import io.github.iannicholls89.wearmultitimer.ui.TimerListScreen
@@ -45,6 +46,7 @@ import io.github.iannicholls89.wearmultitimer.ui.TimerTheme
 import io.github.iannicholls89.wearmultitimer.ui.UpdateUi
 import io.github.iannicholls89.wearmultitimer.update.Updater
 import io.github.iannicholls89.wearmultitimer.ui.rememberNow
+import io.github.iannicholls89.wearmultitimer.ui.rememberTextInput
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -85,16 +87,34 @@ fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis, checkForUpd
                     )
                 }
                 composable("new") {
+                    val presets by vm.presets.collectAsStateWithLifecycle()
                     NewTimerScreen(
-                        onPick = { ms -> vm.create(ms, onCreated = openNew) },
+                        onPick = { ms -> nav.navigate("name/$ms") },
                         onCustom = { nav.navigate("custom") },
+                        presets = presets.orEmpty(),
+                        onPreset = { id -> vm.startPreset(id, onCreated = openNew) },
+                        onDeletePreset = vm::deletePreset,
                     )
                 }
                 composable("custom") {
                     CustomDurationScreen { ms ->
                         if (ms <= 0) Toast.makeText(context, "Set a time first", Toast.LENGTH_SHORT).show()
-                        else vm.create(ms, onCreated = openNew)
+                        else nav.navigate("name/$ms")
                     }
+                }
+                composable("name/{ms}") { entry ->
+                    val ms = entry.arguments?.getString("ms")?.toLongOrNull() ?: return@composable
+                    var name by rememberSaveable { mutableStateOf<String?>(null) }
+                    var save by rememberSaveable { mutableStateOf(false) }
+                    val editName = rememberTextInput("Name this timer") { name = it.trim().ifEmpty { null } }
+                    NameTimerScreen(
+                        durationMs = ms,
+                        name = name,
+                        saveAsPreset = save,
+                        onEditName = editName,
+                        onSaveAsPresetChange = { save = it },
+                        onStart = { vm.create(ms, name, saveAsPreset = save, onCreated = openNew) },
+                    )
                 }
                 composable("timer/{id}") { entry ->
                     val id = entry.arguments?.getString("id")?.toLongOrNull()
@@ -105,6 +125,7 @@ fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis, checkForUpd
                         // Deleted (or not read yet): back to the list once the timers are in.
                         if (timers != null) LaunchedEffect(Unit) { nav.popBackStack("list", inclusive = false) }
                     } else {
+                        val rename = rememberTextInput("Rename this timer") { vm.rename(timer.id, it) }
                         TimerScreen(
                             timer = timer,
                             now = now,
@@ -112,6 +133,7 @@ fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis, checkForUpd
                             onAddMinute = { vm.addMinute(timer.id) },
                             onReset = { vm.reset(timer.id) },
                             onDelete = { vm.delete(timer.id) },
+                            onRename = rename,
                         )
                     }
                 }

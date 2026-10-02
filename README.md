@@ -3,19 +3,26 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.3.3 — any number of timers, and they ring: a finished timer buzzes and shows a
-> full-screen alert even with the app closed or the watch asleep, and timers survive a restart.
-> Names and presets arrive in v0.4.
+> **Status:** v0.4 — any number of named timers and presets; finished timers ring, even with the
+> app closed or the watch asleep; the running timer shows at the foot of the watch face; and the
+> app updates itself. Next: v0.5, polish against Google Clock.
 
 | Timers | One timer | New timer |
 |---|---|---|
 | ![Timer list](docs/screenshots/1-list.png) | ![Running timer](docs/screenshots/5-running.png) | ![New timer](docs/screenshots/3-new-timer.png) |
 | ![Time's up](docs/screenshots/10-ring-one.png) | ![Several finished](docs/screenshots/11-ring-many.png) | ![Custom duration](docs/screenshots/4-custom.png) |
+| ![Presets](docs/screenshots/15-new-presets.png) | ![Naming a timer](docs/screenshots/17-name-step-named.png) | |
 
 ## Using it
 
-- **New timer** (bottom of the list): tap a common duration to start it straight away, or
-  **Custom** for hours, minutes and seconds.
+- **New timer** (bottom of the list - scroll down if it's tucked away): your **presets** first,
+  one tap starts one; then common durations, and **Custom** for hours, minutes and seconds.
+- After picking a duration: **Add a name** (keyboard or voice) if you like, and **Save as preset**
+  to keep the name and duration for next time; then **Start**. Unnamed timers are called by their
+  duration.
+- **Tap a timer's name** on its own screen to rename it.
+- **Swipe a preset left** on the New timer screen to delete it.
+- While a timer runs, its icon sits at the **foot of the watch face**; tap it to open the app.
 - **Tap a timer** to open it: pause/resume in the middle, reset on the left, **+1:00** on the right.
   Once reset, the left button deletes it. When the time's up the middle button stops it.
 - **Swipe a timer left** in the list to delete it.

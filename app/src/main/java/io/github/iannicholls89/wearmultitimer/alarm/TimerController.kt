@@ -39,6 +39,7 @@ class TimerController private constructor(
 
     fun sync(state: AppState, now: Long) {
         AlarmScheduler.set(context, state.timers)
+        Notifications.showRunning(context, state.timers, now)
         if (state.timers.any { it.isRinging(now) }) {
             RingService.start(context)
         } else {
