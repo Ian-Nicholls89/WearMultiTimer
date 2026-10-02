@@ -3,6 +3,8 @@ package io.github.iannicholls89.wearmultitimer.ui
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -119,6 +121,8 @@ private fun TimerRow(timer: TimerItem, now: Long, onClick: () -> Unit, transform
             iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+    // Read through a State: the indicator only redraws when the progress it reads is one.
+    val progress by rememberUpdatedState(timer.progress(now))
     Button(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -126,7 +130,7 @@ private fun TimerRow(timer: TimerItem, now: Long, onClick: () -> Unit, transform
         transformation = transformation,
         icon = {
             CircularProgressIndicator(
-                progress = { timer.progress(now) },
+                progress = { progress },
                 modifier = Modifier.size(ButtonDefaults.LargeIconSize),
                 strokeWidth = 4.dp,
             )

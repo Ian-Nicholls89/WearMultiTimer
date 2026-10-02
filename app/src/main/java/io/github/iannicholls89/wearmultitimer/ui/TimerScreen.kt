@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -51,10 +53,12 @@ fun TimerScreen(
     val running = timer.state == TimerItem.State.RUNNING
     val isReset = timer.state == TimerItem.State.RESET
     val remaining = timer.remaining(now)
+    // Read through a State: the indicator only redraws when the progress it reads is one.
+    val progress by rememberUpdatedState(timer.progress(now))
     ScreenScaffold(timeText = {}) {
         Box(Modifier.fillMaxSize()) {
             CircularProgressIndicator(
-                progress = { timer.progress(now) },
+                progress = { progress },
                 modifier = Modifier.fillMaxSize().padding(3.dp),
                 strokeWidth = 8.dp,
             )

@@ -3,7 +3,7 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.3 — any number of timers, and they ring: a finished timer buzzes and shows a
+> **Status:** v0.3.1 — any number of timers, and they ring: a finished timer buzzes and shows a
 > full-screen alert even with the app closed or the watch asleep, and timers survive a restart.
 > Names and presets arrive in v0.4.
 
