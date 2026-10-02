@@ -27,13 +27,13 @@ fun TimerTheme(content: @Composable () -> Unit) {
 
 /** The current time, updated whenever a running timer's seconds turn over, while the app is on screen. */
 @Composable
-fun rememberNow(timers: List<TimerItem>): Long {
-    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+fun rememberNow(timers: List<TimerItem>, clock: () -> Long = System::currentTimeMillis): Long {
+    var now by remember { mutableLongStateOf(clock()) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(timers, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
-                now = System.currentTimeMillis()
+                now = clock()
                 val wait = timers.millisToNextTick(now) ?: break
                 delay(wait.coerceAtLeast(16))
             }

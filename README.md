@@ -3,7 +3,7 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.2 — any number of timers: make, run, pause, +1 min, reset, delete, kept when
+> **Status:** v0.2.1 — any number of timers: make, run, pause, +1 min, reset, delete, kept when
 > the app closes. There's no alarm yet: a finished timer shows "Time's up" in the app but doesn't
 > buzz. Alarms arrive in v0.3.
 

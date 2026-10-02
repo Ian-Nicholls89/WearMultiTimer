@@ -29,12 +29,14 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/**
+ * Each screen reads the timers and the time itself: the nav host keeps the first version of each
+ * destination's content, so values read out here and passed in would never change on screen.
+ */
 @Composable
-fun WearMultiTimerApp() {
+fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis) {
     val context = LocalContext.current
-    val vm: TimerViewModel = viewModel { TimerViewModel(TimerStore.get(context)) }
-    val timers by vm.timers.collectAsStateWithLifecycle()
-    val now = rememberNow(timers.orEmpty())
+    val vm: TimerViewModel = viewModel { TimerViewModel(TimerStore.get(context), clock) }
     val nav = rememberSwipeDismissableNavController()
 
     // A new timer opens on its own screen, as in Google Clock; swipe back for the list.
@@ -46,9 +48,10 @@ fun WearMultiTimerApp() {
         AppScaffold {
             SwipeDismissableNavHost(navController = nav, startDestination = "list") {
                 composable("list") {
+                    val timers by vm.timers.collectAsStateWithLifecycle()
                     TimerListScreen(
                         timers = timers,
-                        now = now,
+                        now = rememberNow(timers.orEmpty(), clock),
                         onOpen = { nav.navigate("timer/$it") },
                         onDelete = vm::delete,
                         onNew = { nav.navigate("new") },
@@ -68,7 +71,9 @@ fun WearMultiTimerApp() {
                 }
                 composable("timer/{id}") { entry ->
                     val id = entry.arguments?.getString("id")?.toLongOrNull()
+                    val timers by vm.timers.collectAsStateWithLifecycle()
                     val timer = timers?.firstOrNull { it.id == id }
+                    val now = rememberNow(listOfNotNull(timer), clock)
                     if (timer == null) {
                         // Deleted (or not read yet): back to the list once the timers are in.
                         if (timers != null) LaunchedEffect(Unit) { nav.popBackStack("list", inclusive = false) }
