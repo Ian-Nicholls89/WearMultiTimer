@@ -3,7 +3,7 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.3.1 — any number of timers, and they ring: a finished timer buzzes and shows a
+> **Status:** v0.3.2 — any number of timers, and they ring: a finished timer buzzes and shows a
 > full-screen alert even with the app closed or the watch asleep, and timers survive a restart.
 > Names and presets arrive in v0.4.
 
@@ -23,8 +23,9 @@ Google's Clock app. Standalone: no phone app needed.
 
 ### When a timer finishes
 
-- The watch buzzes, and plays the alarm sound unless it's on vibrate or silent, with a full-screen
-  **Time's up** showing the timer and how long ago it finished.
+- The watch buzzes and chimes, with a full-screen **Time's up** showing the timer and how long ago
+  it finished. The chime plays at the watch's **alarm volume**, on sound or vibrate, as Google
+  Clock's does; only silent mode keeps it quiet.
 - **Stop** resets the timer (it stays in the list, ready to run again); **+1:00** gives it another minute.
 - Several at once are listed together, with **Stop all** at the bottom.
 - The notification has **Stop** and **+1 min** too, for every finished timer.
@@ -63,6 +64,19 @@ Download `WearMultiTimer-vX.Y.apk` from the [latest release](../../releases/late
 debugging, then pick the downloaded APK.
 
 Updates install over the top the same way; your timers are kept.
+
+### Let alerts fill the screen (once)
+
+Google Clock is part of the watch, so it can put "Time's up" over whatever is on screen. An
+installed app may only do that with permission to *display over other apps*, which a watch has no
+switch for — so grant it with ADB, once, while you're connected to install:
+
+```
+adb shell appops set io.github.iannicholls89.wearmultitimer SYSTEM_ALERT_WINDOW allow
+```
+
+Without it a finished timer still buzzes and chimes, but shows as a notification you tap to open.
+It's kept across updates; the red notice in the app goes once it's granted.
 
 ## Building
 

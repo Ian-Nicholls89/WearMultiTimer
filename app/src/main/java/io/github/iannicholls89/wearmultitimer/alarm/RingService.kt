@@ -1,13 +1,13 @@
 package io.github.iannicholls89.wearmultitimer.alarm
 
+import android.annotation.SuppressLint
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioManager
-import android.media.Ringtone
-import android.media.RingtoneManager
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
@@ -19,6 +19,8 @@ import android.util.Log
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import io.github.iannicholls89.wearmultitimer.R
+import io.github.iannicholls89.wearmultitimer.RingActivity
 import io.github.iannicholls89.wearmultitimer.timer.TimerItem
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -30,23 +32,27 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * Buzzes (and plays the alarm sound unless the watch is on vibrate or silent) while any timer is
- * ringing, and stops by itself once none is: stopped, given +1 min, or quiet after two minutes.
- * The only time the app runs in the background - nothing runs just to count down.
+ * Buzzes and chimes while any timer is ringing, and stops by itself once none is: stopped, given
+ * +1 min, or quiet after two minutes. The only time the app runs in the background - nothing runs
+ * just to count down.
  */
 class RingService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var watching: Job? = null
     private var alerting = false
-    private var ringtone: Ringtone? = null
+    private var player: MediaPlayer? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /** For the tests. */
+    internal val isChiming: Boolean get() = player?.isPlaying == true
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (!alerting) {
             goForeground()
             startAlert()
+            showAlertScreen()
         }
         // Started again when another timer runs out while ringing: look again at what's ringing.
         watching?.cancel()
@@ -113,16 +119,35 @@ class RingService : Service() {
             vibrator().vibrate(pattern, alarmAudio)
         }
 
-        // Sound only when the watch isn't on vibrate or silent.
-        if (getSystemService(AudioManager::class.java).ringerMode == AudioManager.RINGER_MODE_NORMAL) {
-            val uri = RingtoneManager.getActualDefaultRingtoneUri(this, RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            ringtone = uri?.let { RingtoneManager.getRingtone(this, it) }?.apply {
-                audioAttributes = alarmAudio
-                isLooping = true
-                play()
+        // As Google Clock: the chime plays at the alarm volume whether the watch is on sound or
+        // vibrate; only silent mode keeps it quiet. Our own sound - a watch may have no alarm tones.
+        if (getSystemService(AudioManager::class.java).ringerMode != AudioManager.RINGER_MODE_SILENT) {
+            player = try {
+                MediaPlayer().apply {
+                    setAudioAttributes(alarmAudio)
+                    resources.openRawResourceFd(R.raw.timer_chime).use { setDataSource(it) }
+                    isLooping = true
+                    prepare()
+                    start()
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Couldn't play the chime", e)
+                null
             }
+        }
+    }
+
+    /**
+     * Fills the screen with the alert, as Google Clock does. The notification asks for that too,
+     * but Wear OS may only show it as a notification; opening it from here works when the app may
+     * display over other apps (granted by ADB - see the README), and is quietly refused otherwise.
+     */
+    @SuppressLint("WearRecents") // A service has no task of its own: NEW_TASK is required here.
+    private fun showAlertScreen() {
+        try {
+            startActivity(Intent(this, RingActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: Exception) {
+            Log.w(TAG, "Couldn't open the alert screen", e)
         }
     }
 
@@ -130,8 +155,14 @@ class RingService : Service() {
         if (!alerting) return
         alerting = false
         vibrator().cancel()
-        ringtone?.stop()
-        ringtone = null
+        player?.run {
+            try {
+                stop()
+            } catch (_: IllegalStateException) {
+            }
+            release()
+        }
+        player = null
         wakeLock?.takeIf { it.isHeld }?.release()
         wakeLock = null
     }

@@ -168,6 +168,11 @@ private fun alertNotices(context: Context): List<Notice> = buildList {
             )
         })
     }
+    if (!Settings.canDrawOverlays(context)) {
+        add(Notice("Alerts can't fill the screen yet: allow display over apps (see README).") {
+            openSettings(context, Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:${context.packageName}".toUri()))
+        })
+    }
 }
 
 /** The watch may not have that exact settings screen; the app's own page has the same switches. */

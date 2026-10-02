@@ -3,6 +3,7 @@ package io.github.iannicholls89.wearmultitimer.alarm
 import android.app.AlarmManager
 import android.app.Application
 import android.content.Context
+import android.media.AudioManager
 import android.os.Looper
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -22,6 +23,8 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowMediaPlayer
+import io.github.iannicholls89.wearmultitimer.RingActivity
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -77,17 +80,35 @@ class AlarmTest {
         assertEquals(running, after.timers[1])
     }
 
-    @Test fun `the ringing service buzzes until the timer is stopped, then stops itself`() {
+    @Test fun `the ringing buzzes, chimes and opens the alert until the timer is stopped`() {
+        ShadowMediaPlayer.setMediaInfoProvider { ShadowMediaPlayer.MediaInfo(1_400, 0) }
+        // The watch on vibrate, as watches usually are: the chime still plays, as Google Clock's does.
+        context.getSystemService(AudioManager::class.java).ringerMode = AudioManager.RINGER_MODE_VIBRATE
         val t = TimerItem(id = 1, durationMs = 1_000).start(now - 5_000)
         set(t)
         val service = Robolectric.buildService(RingService::class.java).create().startCommand(0, 1)
         val vibrator = shadowOf(context.getSystemService(VibratorManager::class.java).defaultVibrator)
         assertTrue(vibrator.isVibrating)
+        assertTrue(service.get().isChiming)
         assertNotNull(shadowOf(service.get()).lastForegroundNotification)
+        assertEquals(
+            RingActivity::class.java.name,
+            shadowOf(service.get()).nextStartedActivity?.component?.className,
+        )
 
         set(t.reset())
         waitFor { shadowOf(service.get()).isStoppedBySelf }
         assertFalse(vibrator.isVibrating)
+        assertFalse(service.get().isChiming)
+    }
+
+    @Test fun `silent mode keeps the chime quiet but still buzzes`() {
+        ShadowMediaPlayer.setMediaInfoProvider { ShadowMediaPlayer.MediaInfo(1_400, 0) }
+        context.getSystemService(AudioManager::class.java).ringerMode = AudioManager.RINGER_MODE_SILENT
+        set(TimerItem(id = 1, durationMs = 1_000).start(now - 5_000))
+        val service = Robolectric.buildService(RingService::class.java).create().startCommand(0, 1)
+        assertTrue(shadowOf(context.getSystemService(VibratorManager::class.java).defaultVibrator).isVibrating)
+        assertFalse(service.get().isChiming)
     }
 
     /** DataStore hands the change over on its own thread; give the main looper a moment to see it. */
