@@ -5,6 +5,10 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import org.junit.Assert.assertTrue
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
@@ -77,5 +81,26 @@ class CountdownTest {
         compose.waitUntilAtLeastOneExists(hasText("+1:00"), 5_000)
         tick(1_000)
         compose.waitUntilAtLeastOneExists(hasText("4:59"), 5_000)
+    }
+
+    @Test fun dimmingShowsTheDimScreenAndWakingComesBack() {
+        seed()
+        var ambient by androidx.compose.runtime.mutableStateOf<Boolean?>(null)
+        compose.setContent {
+            WearMultiTimerApp(clock = { fakeNow }, checkForUpdates = false, ambient = ambient, ambientNow = fakeNow)
+        }
+        compose.waitUntilAtLeastOneExists(hasText("10:00"), 5_000)
+        compose.onNodeWithText("10:00").performClick()
+        compose.waitUntilAtLeastOneExists(hasText("+1:00"), 5_000)
+
+        ambient = false
+        compose.waitUntilAtLeastOneExists(hasText("10 min"), 5_000)
+        compose.onNodeWithText("Pasta").assertExists()
+        assertTrue("the buttons are gone while dimmed", compose.onAllNodesWithText("+1:00").fetchSemanticsNodes().isEmpty())
+
+        ambient = null
+        tick(1_000)
+        compose.waitUntilAtLeastOneExists(hasText("9:59"), 5_000)
+        compose.onNodeWithText("+1:00").assertExists()
     }
 }

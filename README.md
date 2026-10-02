@@ -3,15 +3,15 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.4 — any number of named timers and presets; finished timers ring, even with the
-> app closed or the watch asleep; the running timer shows at the foot of the watch face; and the
-> app updates itself. Next: v0.5, polish against Google Clock.
+> **Status:** v0.5 — any number of named timers and presets; finished timers ring, even with the
+> app closed or the watch asleep; the running timer shows at the foot of the watch face; the app
+> stays on screen, dimmed, when the watch dims; and it updates itself. Next: v1.0.
 
 | Timers | One timer | New timer |
 |---|---|---|
 | ![Timer list](docs/screenshots/1-list.png) | ![Running timer](docs/screenshots/5-running.png) | ![New timer](docs/screenshots/3-new-timer.png) |
 | ![Time's up](docs/screenshots/10-ring-one.png) | ![Several finished](docs/screenshots/11-ring-many.png) | ![Custom duration](docs/screenshots/4-custom.png) |
-| ![Presets](docs/screenshots/15-new-presets.png) | ![Naming a timer](docs/screenshots/17-name-step-named.png) | |
+| ![Presets](docs/screenshots/15-new-presets.png) | ![Naming a timer](docs/screenshots/17-name-step-named.png) | ![Dimmed](docs/screenshots/18-dimmed.png) |
 
 ## Using it
 
@@ -23,6 +23,9 @@ Google's Clock app. Standalone: no phone app needed.
 - **Tap a timer's name** on its own screen to rename it.
 - **Swipe a preset left** on the New timer screen to delete it.
 - While a timer runs, its icon sits at the **foot of the watch face**; tap it to open the app.
+- When the watch **dims** with the app open, it stays on screen dimmed, showing your timers to the
+  minute; raise your wrist or tap and you're back where you were.
+- Turn the **crown** to scroll any list.
 - **Tap a timer** to open it: pause/resume in the middle, reset on the left, **+1:00** on the right.
   Once reset, the left button deletes it. When the time's up the middle button stops it.
 - **Swipe a timer left** in the list to delete it.
@@ -112,6 +115,7 @@ Screenshots of the screens, rendered on the computer (round, large font):
 
 ```
 ./gradlew testDebugUnitTest -Pscreenshots --tests '*ScreensTest*'   # app/build/screenshots/
+./gradlew testDebugUnitTest -Pscreenshots -PfontScale=1.3 --tests '*ScreensTest*'   # largest text
 ```
 
 ## Releasing

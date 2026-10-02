@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,12 +31,14 @@ import androidx.lifecycle.repeatOnLifecycle
 import kotlinx.coroutines.launch
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.wear.ambient.AmbientLifecycleObserver
 import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.navigation.SwipeDismissableNavHost
 import androidx.wear.compose.navigation.composable
 import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import io.github.iannicholls89.wearmultitimer.alarm.Notifications
 import io.github.iannicholls89.wearmultitimer.alarm.TimerController
+import io.github.iannicholls89.wearmultitimer.ui.AmbientScreen
 import io.github.iannicholls89.wearmultitimer.ui.CustomDurationScreen
 import io.github.iannicholls89.wearmultitimer.ui.NameTimerScreen
 import io.github.iannicholls89.wearmultitimer.ui.NewTimerScreen
@@ -49,9 +52,37 @@ import io.github.iannicholls89.wearmultitimer.ui.rememberNow
 import io.github.iannicholls89.wearmultitimer.ui.rememberTextInput
 
 class MainActivity : ComponentActivity() {
+    /** Null while the screen is fully on; when dimmed, whether to guard against burn-in. */
+    private val ambient = mutableStateOf<Boolean?>(null)
+
+    /** The time of the last dimmed redraw: the watch wakes the app about once a minute for it. */
+    private val ambientTick = mutableLongStateOf(0L)
+
+    private val ambientObserver = AmbientLifecycleObserver(
+        this,
+        object : AmbientLifecycleObserver.AmbientLifecycleCallback {
+            override fun onEnterAmbient(ambientDetails: AmbientLifecycleObserver.AmbientDetails) {
+                ambientTick.longValue = System.currentTimeMillis()
+                ambient.value = ambientDetails.burnInProtectionRequired
+            }
+
+            override fun onUpdateAmbient() {
+                ambientTick.longValue = System.currentTimeMillis()
+            }
+
+            override fun onExitAmbient() {
+                ambient.value = null
+            }
+        },
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { WearMultiTimerApp() }
+        // Stay on screen, dimmed, when the watch dims - as Google Clock's timer does.
+        lifecycle.addObserver(ambientObserver)
+        setContent {
+            WearMultiTimerApp(ambient = ambient.value, ambientNow = ambientTick.longValue)
+        }
     }
 }
 
@@ -60,7 +91,12 @@ class MainActivity : ComponentActivity() {
  * destination's content, so values read out here and passed in would never change on screen.
  */
 @Composable
-fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis, checkForUpdates: Boolean = true) {
+fun WearMultiTimerApp(
+    clock: () -> Long = System::currentTimeMillis,
+    checkForUpdates: Boolean = true,
+    ambient: Boolean? = null,
+    ambientNow: Long = 0L,
+) {
     val context = LocalContext.current
     val vm: TimerViewModel = viewModel { TimerViewModel(TimerController.get(context), clock) }
     val nav = rememberSwipeDismissableNavController()
@@ -72,6 +108,12 @@ fun WearMultiTimerApp(clock: () -> Long = System::currentTimeMillis, checkForUpd
 
     TimerTheme {
         OpenRingScreenWhenDone(vm, clock)
+        if (ambient != null) {
+            // Dimmed: the screen underneath is set aside, and comes back as it was on waking.
+            val timers by vm.timers.collectAsStateWithLifecycle()
+            AppScaffold { AmbientScreen(timers.orEmpty(), ambientNow, burnInProtection = ambient) }
+            return@TimerTheme
+        }
         AppScaffold {
             SwipeDismissableNavHost(navController = nav, startDestination = "list") {
                 composable("list") {

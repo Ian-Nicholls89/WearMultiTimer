@@ -41,11 +41,15 @@ class ScreensTest {
     private val bread = TimerItem(id = 4, name = "Bread proving", durationMs = 90 * min).start(now - 60 * min).pause(now - 20 * min)
     private val unnamed = TimerItem(id = 5, durationMs = 5 * min)
 
+    /** 1.15 as the user's watch; -PfontScale=1.3 renders the largest text, into build/screenshots-1.3. */
+    private val fontScale = System.getProperty("fontScale")?.toFloatOrNull() ?: 1.15f
+
     private fun shoot(name: String, content: @Composable () -> Unit) {
-        RuntimeEnvironment.setFontScale(1.15f)
+        RuntimeEnvironment.setFontScale(fontScale)
         compose.setContent { TimerTheme { AppScaffold { content() } } }
         compose.waitForIdle()
-        compose.onRoot().captureRoboImage("build/screenshots/$name.png")
+        val dir = if (fontScale == 1.15f) "build/screenshots" else "build/screenshots-$fontScale"
+        compose.onRoot().captureRoboImage("$dir/$name.png")
     }
 
     @Test fun list() = shoot("1-list") {
@@ -103,6 +107,10 @@ class ScreensTest {
     @Test fun nameStep() = shoot("16-name-step") { NameTimerScreen(10 * min, null, false, {}, {}, {}) }
 
     @Test fun nameStepNamed() = shoot("17-name-step-named") { NameTimerScreen(10 * min, "Pasta", true, {}, {}, {}) }
+
+    @Test fun ambient() = shoot("18-dimmed") {
+        io.github.iannicholls89.wearmultitimer.ui.AmbientScreen(listOf(pasta, laundry, bread, tea), now, burnInProtection = false)
+    }
 
     @Test fun reset() = shoot("8-reset") { TimerScreen(unnamed, now, {}, {}, {}, {}) }
 }

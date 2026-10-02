@@ -96,6 +96,8 @@ dependencies {
     // The timers and presets, saved as one JSON file.
     implementation(libs.androidx.datastore)
     implementation(libs.kotlinx.serialization.json)
+    // Staying on screen, dimmed, when the watch dims (ambient mode).
+    implementation(libs.wear.ambient)
     // Naming timers by keyboard or voice.
     implementation(libs.wear.input)
     // The running timer at the foot of the watch face.
@@ -114,4 +116,5 @@ dependencies {
 tasks.withType<Test>().configureEach {
     if (!project.hasProperty("screenshots")) exclude("**/screenshots/**")
     else systemProperty("roborazzi.test.record", "true")
+    project.findProperty("fontScale")?.let { systemProperty("fontScale", it) }
 }
