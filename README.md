@@ -3,7 +3,7 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.6 — any number of named timers and presets; finished timers ring, even with the
+> **Status:** v0.6.1 — any number of named timers and presets; finished timers ring, even with the
 > app closed or the watch asleep; the running timer shows at the foot of the watch face; the app
 > stays on screen, dimmed, when the watch dims; and it updates itself. Next: v1.0.
 
@@ -114,6 +114,10 @@ It's kept across updates; the red notice in the app goes once it's granted.
 ```
 
 Needs JDK 17 and the Android SDK (platform 37).
+
+The chime is made by `tools/make_chimes.py` (needs numpy), which writes three to `docs/chimes/`:
+[A, glass](docs/chimes/a_glass.wav) (the one in the app), [B, wind chimes](docs/chimes/b_wind.wav)
+and [C, bell](docs/chimes/c_bell.wav). To change it, copy one over `app/src/main/res/raw/timer_chime.wav`.
 
 Screenshots of the screens, rendered on the computer (round, large font):
 
