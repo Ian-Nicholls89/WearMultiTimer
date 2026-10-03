@@ -118,7 +118,9 @@ Needs JDK 17 and the Android SDK (platform 37).
 The chime is made by `tools/make_chimes.py` (needs numpy), which writes three to `docs/chimes/`:
 [A, glass](docs/chimes/a_glass.wav) (the one in the app), [B, wind chimes](docs/chimes/b_wind.wav),
 [C, bell](docs/chimes/c_bell.wav), and three layered takes on C: [C2, layered bell](docs/chimes/c2_layered_bell.wav),
-[C3, bell chord](docs/chimes/c3_bell_chord.wav) and [C4, soft mallet](docs/chimes/c4_soft_mallet.wav).
+[C3, bell chord](docs/chimes/c3_bell_chord.wav) and [C4, soft mallet](docs/chimes/c4_soft_mallet.wav); and C4 in
+Wear OS's five-note shape (high, three lower, high): [C4a, arc](docs/chimes/c4a_arc.wav),
+[C4b, pulse](docs/chimes/c4b_pulse.wav) and [C4c, lift](docs/chimes/c4c_lift.wav).
 To change it, copy one over `app/src/main/res/raw/timer_chime.wav`.
 
 Screenshots of the screens, rendered on the computer (round, large font):
