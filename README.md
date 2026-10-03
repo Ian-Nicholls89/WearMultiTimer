@@ -3,7 +3,7 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.6.1 — any number of named timers and presets; finished timers ring, even with the
+> **Status:** v0.6.2 — any number of named timers and presets; finished timers ring, even with the
 > app closed or the watch asleep; the running timer shows at the foot of the watch face; the app
 > stays on screen, dimmed, when the watch dims; and it updates itself. Next: v1.0.
 
@@ -116,11 +116,12 @@ It's kept across updates; the red notice in the app goes once it's granted.
 Needs JDK 17 and the Android SDK (platform 37).
 
 The chime is made by `tools/make_chimes.py` (needs numpy), which writes three to `docs/chimes/`:
-[A, glass](docs/chimes/a_glass.wav) (the one in the app), [B, wind chimes](docs/chimes/b_wind.wav),
+[A, glass](docs/chimes/a_glass.wav), [B, wind chimes](docs/chimes/b_wind.wav),
 [C, bell](docs/chimes/c_bell.wav), and three layered takes on C: [C2, layered bell](docs/chimes/c2_layered_bell.wav),
 [C3, bell chord](docs/chimes/c3_bell_chord.wav) and [C4, soft mallet](docs/chimes/c4_soft_mallet.wav); and C4 in
 Wear OS's five-note shape (high, three lower, high): [C4a, arc](docs/chimes/c4a_arc.wav),
-[C4b, pulse](docs/chimes/c4b_pulse.wav) and [C4c, lift](docs/chimes/c4c_lift.wav).
+[C4b, pulse](docs/chimes/c4b_pulse.wav), [C4c, lift](docs/chimes/c4c_lift.wav), and
+[C4d, lift with a pickup](docs/chimes/c4d_lift_pickup.wav) (A6 · D7 · A6 G6 A6 · E7) - the one in the app.
 To change it, copy one over `app/src/main/res/raw/timer_chime.wav`.
 
 Screenshots of the screens, rendered on the computer (round, large font):

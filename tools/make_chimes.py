@@ -151,19 +151,23 @@ def soft_mallet():
     return space(place(3.2, notes), seconds=0.6, wet=0.45)
 
 
-def five_note(pattern, gap=0.11, last_gap=0.13, loop=3.0):
+def five_note(pattern, gap=0.11, last_gap=0.13, loop=3.0, pickup=None):
     """
     C4's mallets in Wear OS's shape (as the user describes it): five quick notes, the first and
-    last high and the middle three lower, the last ringing out longest.
+    last high and the middle three lower, the last ringing out longest. A [pickup] note, softer,
+    leads into the first.
     """
     def tone(f, level, decay):
         return level * soft(strike(f, loop, MALLET, decay=decay, detune=0.002), 0.008)
-    starts = [0.0, gap, 2 * gap, 3 * gap, 3 * gap + last_gap]
+    lead = gap if pickup else 0.0
+    starts = [lead + at for at in (0.0, gap, 2 * gap, 3 * gap, 3 * gap + last_gap)]
     levels = [0.9, 0.65, 0.6, 0.65, 1.0]
     # Short notes, so each is heard and the dip in the middle comes through; the last rings
     # longest but is gone (-60 dB) well before the loop comes round.
     decays = [6.0, 7.0, 7.0, 7.0, 3.5]
     notes = [(at, tone(f, lv, dc)) for at, f, lv, dc in zip(starts, pattern, levels, decays)]
+    if pickup:
+        notes.insert(0, (0.0, tone(pickup, 0.55, 7.0)))
     return space(place(loop, notes), seconds=0.5, wet=0.3, echoes=((0.14, 0.2), (0.29, 0.09)))
 
 
@@ -180,3 +184,4 @@ if __name__ == "__main__":
     finish("c4a_arc.wav", five_note([E7, B6, A6, B6, E7]), compress=True)
     finish("c4b_pulse.wav", five_note([E7, B6, B6, B6, E7]), compress=True)
     finish("c4c_lift.wav", five_note([D7, A6, G6, A6, E7]), compress=True)
+    finish("c4d_lift_pickup.wav", five_note([D7, A6, G6, A6, E7], pickup=A6), compress=True)
