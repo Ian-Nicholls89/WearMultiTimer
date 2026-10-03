@@ -122,6 +122,11 @@ The chime is made by `tools/make_chimes.py` (needs numpy), which writes three to
 Wear OS's five-note shape (high, three lower, high): [C4a, arc](docs/chimes/c4a_arc.wav),
 [C4b, pulse](docs/chimes/c4b_pulse.wav), [C4c, lift](docs/chimes/c4c_lift.wav), and
 [C4d, lift with a pickup](docs/chimes/c4d_lift_pickup.wav) (A6 · D7 · A6 G6 A6 · E7) - the one in the app.
+C4d a fifth lower (D6 · G6 · D6 C6 D6 · A6) on other instruments: [mallet](docs/chimes/d1_mallet.wav),
+[marimba](docs/chimes/d2_marimba.wav), [vibraphone](docs/chimes/d3_vibraphone.wav),
+[electric piano](docs/chimes/d4_electric_piano.wav), [music box](docs/chimes/d5_music_box.wav),
+[kalimba](docs/chimes/d6_kalimba.wav), [harp](docs/chimes/d7_harp.wav), [synth pluck](docs/chimes/d8_synth_pluck.wav);
+and the mallet [an octave lower](docs/chimes/d1_mallet_octave_down.wav).
 To change it, copy one over `app/src/main/res/raw/timer_chime.wav`.
 
 Screenshots of the screens, rendered on the computer (round, large font):

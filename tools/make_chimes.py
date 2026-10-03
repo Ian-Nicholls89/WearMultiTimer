@@ -151,27 +151,112 @@ def soft_mallet():
     return space(place(3.2, notes), seconds=0.6, wet=0.45)
 
 
-def five_note(pattern, gap=0.11, last_gap=0.13, loop=3.0, pickup=None):
+def mallet(f, length, level, decay):
+    return level * soft(strike(f, length, MALLET, decay=decay, detune=0.002), 0.008)
+
+
+def five_note(pattern, gap=0.11, last_gap=0.13, loop=3.0, pickup=None, instrument=mallet):
     """
-    C4's mallets in Wear OS's shape (as the user describes it): five quick notes, the first and
+    The tune in Wear OS's shape (as the user describes it): five quick notes, the first and
     last high and the middle three lower, the last ringing out longest. A [pickup] note, softer,
-    leads into the first.
+    leads into the first. [instrument] plays each note: (frequency, length, level, decay).
     """
-    def tone(f, level, decay):
-        return level * soft(strike(f, loop, MALLET, decay=decay, detune=0.002), 0.008)
     lead = gap if pickup else 0.0
     starts = [lead + at for at in (0.0, gap, 2 * gap, 3 * gap, 3 * gap + last_gap)]
     levels = [0.9, 0.65, 0.6, 0.65, 1.0]
     # Short notes, so each is heard and the dip in the middle comes through; the last rings
     # longest but is gone (-60 dB) well before the loop comes round.
     decays = [6.0, 7.0, 7.0, 7.0, 3.5]
-    notes = [(at, tone(f, lv, dc)) for at, f, lv, dc in zip(starts, pattern, levels, decays)]
+    notes = [(at, instrument(f, loop, lv, dc)) for at, f, lv, dc in zip(starts, pattern, levels, decays)]
     if pickup:
-        notes.insert(0, (0.0, tone(pickup, 0.55, 7.0)))
+        notes.insert(0, (0.0, instrument(pickup, loop, 0.55, 7.0)))
     return space(place(loop, notes), seconds=0.5, wet=0.3, echoes=((0.14, 0.2), (0.29, 0.09)))
 
 
 B6, A6, G6, D7, E7 = 1975.5, 1760.0, 1568.0, 2349.3, 2637.0
+
+
+# --- The same tune on other instruments, each made from scratch. ---
+
+def _t(length):
+    return np.arange(int(RATE * length)) / RATE
+
+
+def marimba(f, length, level, decay):
+    """Wood: the bar's overtones (about 4x and 10x) die almost at once, leaving a warm, round note."""
+    partials = [(1.0, 1.0, 1.0), (3.93, 0.3, 5.0), (9.2, 0.06, 9.0)]
+    return level * soft(strike(f, length, partials, decay=decay * 0.9), 0.004)
+
+
+def vibraphone(f, length, level, decay):
+    """Metal bars with the motor's slow wobble (about 5 Hz), ringing longer than wood."""
+    partials = [(1.0, 1.0, 1.0), (4.0, 0.25, 3.0), (10.0, 0.04, 6.0)]
+    note = soft(strike(f, length, partials, decay=decay * 0.6), 0.004)
+    t = _t(length)
+    return level * note * (1 - 0.3 * (0.5 + 0.5 * np.sin(2 * np.pi * 5.2 * t)))
+
+
+def electric_piano(f, length, level, decay):
+    """A Rhodes-like tine: one tone bending another, the bark fading fast to a mellow ring."""
+    t = _t(length)
+    index = 1.6 * np.exp(-t * decay * 2.0)
+    tone = np.sin(2 * np.pi * f * t + index * np.sin(2 * np.pi * f * t))
+    return level * soft(tone * np.exp(-t * decay * 0.8), 0.003)
+
+
+def music_box(f, length, level, decay):
+    """A steel comb: bright and tinkly, quick to fade."""
+    partials = [(1.0, 1.0, 1.0), (3.0, 0.3, 2.5), (5.8, 0.12, 4.0)]
+    return level * strike(f, length, partials, decay=decay * 1.3)
+
+
+def kalimba(f, length, level, decay):
+    """A thumb piano: a soft tine with a high ping and a little click of the thumb."""
+    partials = [(1.0, 1.0, 1.0), (6.0, 0.2, 6.0), (10.6, 0.05, 9.0)]
+    note = strike(f, length, partials, decay=decay * 1.1)
+    t = _t(length)
+    click = np.random.default_rng(int(f)).standard_normal(len(t)) * np.exp(-t * 400) * 0.25
+    return level * (note + click)
+
+
+def harp(f, length, level, decay):
+    """
+    A plucked string: whole-number overtones, shaped by plucking a third of the way along, the
+    higher ones fading faster, with a brief pluck noise at the start.
+    """
+    t = _t(length)
+    note = np.zeros_like(t)
+    for k in range(1, 9):
+        fk = f * k
+        if fk > RATE / 2 - 500:
+            break
+        weight = abs(np.sin(np.pi * k / 3.3)) / k
+        note += weight * np.exp(-t * decay * 0.8 * (1 + 0.5 * (k - 1))) * np.sin(2 * np.pi * fk * t)
+    pluck = np.random.default_rng(int(f) + 1).standard_normal(len(t)) * np.exp(-t * 900) * 0.15
+    return level * soft(note + pluck, 0.001)
+
+
+def synth_pluck(f, length, level, decay):
+    """A modern synth pluck: two slightly detuned saws, the brightness closing down as it fades."""
+    t = _t(length)
+    note = np.zeros_like(t)
+    for detune in (-0.004, 0.004):
+        for k in range(1, 40):
+            fk = f * k * (1 + detune)
+            if fk > RATE / 2 - 500:
+                break
+            note += (1 / k) * np.exp(-t * decay * (0.7 + 0.35 * (k - 1))) * np.sin(2 * np.pi * fk * t)
+    return level * soft(note / 2, 0.003)
+
+
+def semitones(n):
+    return 2 ** (n / 12)
+
+
+def tune(shift):
+    """C4d's notes moved by [shift] semitones: (pickup, [the five])."""
+    k = semitones(shift)
+    return A6 * k, [D7 * k, A6 * k, G6 * k, A6 * k, E7 * k]
 
 
 if __name__ == "__main__":
@@ -185,3 +270,13 @@ if __name__ == "__main__":
     finish("c4b_pulse.wav", five_note([E7, B6, B6, B6, E7]), compress=True)
     finish("c4c_lift.wav", five_note([D7, A6, G6, A6, E7]), compress=True)
     finish("c4d_lift_pickup.wav", five_note([D7, A6, G6, A6, E7], pickup=A6), compress=True)
+
+    # C4d a fifth lower (D6 · G6 · D6 C6 D6 · A6), on each instrument; and the mallet an octave down
+    # (A5 · D6 · A5 G5 A5 · E6).
+    pickup5, five5 = tune(-7)
+    for name, instrument in [("1_mallet", mallet), ("2_marimba", marimba), ("3_vibraphone", vibraphone),
+                             ("4_electric_piano", electric_piano), ("5_music_box", music_box),
+                             ("6_kalimba", kalimba), ("7_harp", harp), ("8_synth_pluck", synth_pluck)]:
+        finish(f"d{name}.wav", five_note(five5, pickup=pickup5, instrument=instrument), compress=True)
+    pickup12, five12 = tune(-12)
+    finish("d1_mallet_octave_down.wav", five_note(five12, pickup=pickup12), compress=True)
