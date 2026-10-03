@@ -3,7 +3,7 @@
 Several countdown timers at once on a Wear OS watch, each with its own name — in the look of
 Google's Clock app. Standalone: no phone app needed.
 
-> **Status:** v0.6.2 — any number of named timers and presets; finished timers ring, even with the
+> **Status:** v0.6.3 — any number of named timers and presets; finished timers ring, even with the
 > app closed or the watch asleep; the running timer shows at the foot of the watch face; the app
 > stays on screen, dimmed, when the watch dims; and it updates itself. Next: v1.0.
 
@@ -121,11 +121,11 @@ The chime is made by `tools/make_chimes.py` (needs numpy), which writes three to
 [C3, bell chord](docs/chimes/c3_bell_chord.wav) and [C4, soft mallet](docs/chimes/c4_soft_mallet.wav); and C4 in
 Wear OS's five-note shape (high, three lower, high): [C4a, arc](docs/chimes/c4a_arc.wav),
 [C4b, pulse](docs/chimes/c4b_pulse.wav), [C4c, lift](docs/chimes/c4c_lift.wav), and
-[C4d, lift with a pickup](docs/chimes/c4d_lift_pickup.wav) (A6 · D7 · A6 G6 A6 · E7) - the one in the app.
+[C4d, lift with a pickup](docs/chimes/c4d_lift_pickup.wav) (A6 · D7 · A6 G6 A6 · E7).
 C4d a fifth lower (D6 · G6 · D6 C6 D6 · A6) on other instruments: [mallet](docs/chimes/d1_mallet.wav),
 [marimba](docs/chimes/d2_marimba.wav), [vibraphone](docs/chimes/d3_vibraphone.wav),
 [electric piano](docs/chimes/d4_electric_piano.wav), [music box](docs/chimes/d5_music_box.wav),
-[kalimba](docs/chimes/d6_kalimba.wav), [harp](docs/chimes/d7_harp.wav), [synth pluck](docs/chimes/d8_synth_pluck.wav);
+[kalimba](docs/chimes/d6_kalimba.wav), [harp](docs/chimes/d7_harp.wav), [synth pluck](docs/chimes/d8_synth_pluck.wav) (the one in the app);
 and the mallet [an octave lower](docs/chimes/d1_mallet_octave_down.wav).
 To change it, copy one over `app/src/main/res/raw/timer_chime.wav`.
 
