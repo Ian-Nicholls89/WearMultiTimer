@@ -116,8 +116,10 @@ It's kept across updates; the red notice in the app goes once it's granted.
 Needs JDK 17 and the Android SDK (platform 37).
 
 The chime is made by `tools/make_chimes.py` (needs numpy), which writes three to `docs/chimes/`:
-[A, glass](docs/chimes/a_glass.wav) (the one in the app), [B, wind chimes](docs/chimes/b_wind.wav)
-and [C, bell](docs/chimes/c_bell.wav). To change it, copy one over `app/src/main/res/raw/timer_chime.wav`.
+[A, glass](docs/chimes/a_glass.wav) (the one in the app), [B, wind chimes](docs/chimes/b_wind.wav),
+[C, bell](docs/chimes/c_bell.wav), and three layered takes on C: [C2, layered bell](docs/chimes/c2_layered_bell.wav),
+[C3, bell chord](docs/chimes/c3_bell_chord.wav) and [C4, soft mallet](docs/chimes/c4_soft_mallet.wav).
+To change it, copy one over `app/src/main/res/raw/timer_chime.wav`.
 
 Screenshots of the screens, rendered on the computer (round, large font):
 

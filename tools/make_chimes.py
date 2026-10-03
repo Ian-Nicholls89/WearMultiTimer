@@ -47,9 +47,13 @@ def place(loop_len, events):
     return out
 
 
-def finish(name, signal):
+def finish(name, signal, compress=False):
     peak = np.max(np.abs(signal))
-    signal = signal / peak * 0.89  # about -1 dB
+    signal = signal / peak
+    if compress:
+        # Gentle saturation: the quieter parts come up, as modern alert sounds are mixed.
+        signal = np.tanh(signal * 1.8) / np.tanh(1.8)
+    signal = signal * 0.89  # about -1 dB
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, name)
     with wave.open(path, "wb") as w:
@@ -89,7 +93,68 @@ def bell():
     return place(3.0, [(0.0, note), (0.55, 0.8 * note)])
 
 
+def space(signal, seconds=0.45, wet=0.35, echoes=((0.14, 0.32), (0.29, 0.16))):
+    """
+    A soft room and a couple of echoes, worked out round the loop (circular), so the tail of the
+    last note carries into the first and the loop stays seamless.
+    """
+    n = len(signal)
+    t = np.arange(n) / RATE
+    rng = np.random.default_rng(7)
+    room = rng.standard_normal(n) * np.exp(-t / (seconds / 6.9))  # -60 dB after `seconds`
+    room = np.convolve(room, np.ones(6) / 6, mode="same")  # take the hiss off the top
+    room[0] = 0
+    ir = np.zeros(n)
+    ir[0] = 1.0
+    for at, level in echoes:
+        ir[int(RATE * at)] += level
+    ir += wet * room / np.max(np.abs(room))
+    return np.real(np.fft.ifft(np.fft.fft(signal) * np.fft.fft(ir)))
+
+
+# A mallet on a bar: rounder than a tube - softer upper partials, which fade fast.
+MALLET = [(1.0, 1.0, 1.0), (3.99, 0.22, 4.0), (9.85, 0.05, 7.0)]
+
+
+def soft(note_strike, attack):
+    """Softens a strike's start: a felt mallet rather than a hard hammer."""
+    t = np.arange(len(note_strike)) / RATE
+    return note_strike * np.minimum(1.0, t / attack)
+
+
+def layered_bell():
+    """C2: C's double strike, softer, with a warm body an octave down and glassy sparkle above."""
+    d6 = 1174.7
+    bell_note = soft(strike(d6, 3.0, BELL, decay=1.5, detune=0.0015), 0.006)
+    body = soft(strike(d6 / 2, 3.0, [(1.0, 1.0, 1.0), (2.0, 0.3, 1.5)], decay=1.1), 0.02)
+    sparkle = strike(d6 * 3, 3.0, TUBE[:2], decay=4.0, detune=0.004)
+    layer = bell_note + 0.35 * body + 0.18 * sparkle
+    return space(place(3.0, [(0.0, layer), (0.55, 0.8 * layer)]))
+
+
+def bell_chord():
+    """C3: D rings, then a D-major-add-9 chord answers above it - a modern ding-dong."""
+    def tone(f, level):
+        return level * soft(strike(f, 3.2, BELL, decay=1.6, detune=0.0015), 0.005)
+    ding = tone(1174.7, 1.0)  # D6
+    dong = tone(1480.0, 0.55) + tone(1760.0, 0.5) + tone(2637.0, 0.3)  # F#6 A6 E7
+    sparkle = 0.15 * strike(3520.0, 3.2, TUBE[:2], decay=4.5, detune=0.004)
+    return space(place(3.2, [(0.0, ding), (0.42, dong), (0.44, sparkle)]))
+
+
+def soft_mallet():
+    """C4: the same chord on felt mallets - rounded, warm, more phone than church."""
+    def tone(f, level):
+        return level * soft(strike(f, 3.2, MALLET, decay=2.4, detune=0.002), 0.008)
+    notes = [(0.00, tone(1174.7, 1.0)), (0.11, tone(1480.0, 0.7)), (0.22, tone(1760.0, 0.7)),
+             (0.42, tone(2349.3, 0.75)), (0.44, tone(2637.0, 0.35))]
+    return space(place(3.2, notes), seconds=0.6, wet=0.45)
+
+
 if __name__ == "__main__":
     finish("a_glass.wav", glass())
     finish("b_wind.wav", wind())
     finish("c_bell.wav", bell())
+    finish("c2_layered_bell.wav", layered_bell(), compress=True)
+    finish("c3_bell_chord.wav", bell_chord(), compress=True)
+    finish("c4_soft_mallet.wav", soft_mallet(), compress=True)
